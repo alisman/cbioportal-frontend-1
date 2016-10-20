@@ -5,4 +5,5 @@
 /// <reference path="globals/react-spinkit/index.d.ts" />
 /// <reference path="globals/react/index.d.ts" />
 /// <reference path="globals/redux/index.d.ts" />
+/// <reference path="globals/seamless-immutable/index.d.ts" />
 /// <reference path="globals/underscore/index.d.ts" />
