@@ -4,19 +4,34 @@ declare var require: any
 import * as React from 'react';
 
 // not sure why by typescript doesn't like es6 import version of this
-const ImmutableObject = require('seamless-immutable').ImmutableObject;
+const SeamlessImmutable = require('seamless-immutable');
 
-interface Person
+// this should only be necessary in reducers where mutation is performed
+// we need to generate typing for seamless immutable with option members
+// @andy maybe there is a more elegant ways to do this?
+interface myImmututable {
+
+    get?:any
+    set?:any,
+    setIn?:any
+
+}
+
+// in this solution, our data types neet to extend
+interface Person extends myImmututable
 {
     firstName:string,
     lastName:string,
     skills:string[]
 }
 
-const apiResponse : Person = { firstName:'Aaron', lastName:'Lisman', skills:[] };
+const apiResponse : Person = { firstName:'Aaron', lastName:'Lisman', skills:["1","2","3"] };
 
 // this is how it would exist in store (wrapped in SeamlessImmutable)
-let immutableApiResponse : Person = ImmutableObject(apiResponse);
+let immutableApiResponse : Person = SeamlessImmutable(apiResponse);
+
+// mutation should only ever be performed in reducers
+let mutated = immutableApiResponse.set('firstName','Nora');
 
 interface ExampleProps
 {
@@ -39,8 +54,6 @@ class ExampleComponent extends React.Component<ExampleProps, ExampleState>
 
     }
 }
-
-
 
 interface ExamplePageProps
 {
