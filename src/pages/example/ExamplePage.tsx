@@ -17,7 +17,8 @@ interface myImmututable {
 
 }
 
-// in this solution, our data types neet to extend
+// in this solution, our data types need to extend the base immutable object so that typescript
+// doesn't yell when we call immutable methods on it
 interface Person extends myImmututable
 {
     firstName:string,
