@@ -9,6 +9,7 @@ const SeamlessImmutable = require('seamless-immutable');
 // this should only be necessary in reducers where mutation is performed
 // we need to generate typing for seamless immutable with option members
 // @andy maybe there is a more elegant ways to do this?
+// also, not sure it's possible to type the set method based key.  is that a problem?
 interface myImmututable {
 
     get?:any
