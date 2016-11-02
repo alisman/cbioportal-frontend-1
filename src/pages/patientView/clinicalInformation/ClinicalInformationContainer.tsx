@@ -1,5 +1,4 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import * as React from 'react';
 import ClinicalInformationPatientTable from './ClinicalInformationPatientTable';
 import PDXTree from './PDXTree';
 import Spinner from 'react-spinkit';
@@ -8,25 +7,39 @@ import { connect } from 'react-redux';
 import ClinicalInformationSamples from './ClinicalInformationSamples';
 import PatientHeaderUnconnected from '../patientHeader/PatientHeader';
 
-export class ClinicalInformationContainerUnconnected extends React.Component {
+type TODO = any;
 
-    componentDidMount(ar1, ar2) {
+interface IClinicalInformationContainerProps {
+    data: TODO;
+    setTab: void;
+    loadClinicalInformationTableData: void;
+    samples: Array<TODO>;
+    patient: TODO;
+    status: string;
+}
+
+export class ClinicalInformationContainer extends React.Component<IClinicalInformationContainerProps, {}> {
+
+    componentDidMount() {
         this.props.loadClinicalInformationTableData();
     }
 
-    selectTab(tabId) {
+    selectTab(tabId : number) {
         this.props.setTab(tabId);
     }
 
     buildTabs() {
         return (
             <div>
+
                 <h4>Samples</h4>
 
                 <ClinicalInformationSamples data={this.props.samples} />
 
                 <h4>Patient</h4>
+
                 <ClinicalInformationPatientTable data={this.props.patient.clinicalData} />
+
             </div>
         );
     }
@@ -53,11 +66,8 @@ export class ClinicalInformationContainerUnconnected extends React.Component {
 
         }
     }
+};
 
 
-}
 
-export const PatientHeader = connect(mapStateToProps,
-    actionCreators)(PatientHeaderUnconnected);
-
-export default connect(mapStateToProps, actionCreators)(ClinicalInformationContainerUnconnected);
+export default connect(mapStateToProps, actionCreators)(ClinicalInformationContainer);

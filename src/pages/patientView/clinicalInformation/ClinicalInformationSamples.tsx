@@ -1,36 +1,28 @@
-import React, { PropTypes as T } from 'react';
-
-import {Table, Column, Cell} from 'fixed-data-table';
+import * as React from 'react';
 
 import EnhancedFixedDataTable from 'shared/components/enhancedFixedDataTable/EnhancedFixedDataTable';
 
 import covertSampleData from './lib/convertSamplesData';
 
-export class ClinicalInformationSamplesTable extends React.Component {
+type TODO = any;
 
-    constructor(props) {
-        super(props);
+export interface IClinicalInformationSamplesTableProps {
+    data: TODO;
+};
 
-        this.state = {
-            myTableData: [
-                { name: 'Rylan' },
-                { name: 'Amelia' },
-                { name: 'Estevan' },
-                { name: 'Florence' },
-                { name: 'Tressa' },
-            ],
-        };
-    }
+
+export class ClinicalInformationSamplesTable extends React.Component<IClinicalInformationSamplesTableProps, {}> {
 
     render() {
+
         const data = covertSampleData(this.props.data);
 
-        const cells = [];
+        const cells: Array<TODO> = [];
 
-        Object.keys(data.items).forEach((key) => {
-            const item = data.items[key];
+        Object.keys(data.items).forEach((key: string) => {
+            const item:TODO = data.items[key];
 
-            data.columns.forEach((col) => {
+            data.columns.forEach((col: any) => {
                 if (col.id in item) {
                     cells.push({ attr_name: key, attr_id: col.id, attr_val: item[col.id] });
                 } else {
@@ -40,7 +32,7 @@ export class ClinicalInformationSamplesTable extends React.Component {
         });
 
         const d = {
-            attributes: data.columns.map((col) => {
+            attributes: data.columns.map((col:TODO) => {
                 return { attr_id: col.id, datatype: 'STRING', display_name: col.id };
             }),
             data: cells,
@@ -53,9 +45,4 @@ export class ClinicalInformationSamplesTable extends React.Component {
 }
 
 export default ClinicalInformationSamplesTable;
-
-
-ClinicalInformationSamplesTable.propTypes = {
-    data: T.any.isRequired,
-};
 
