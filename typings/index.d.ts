@@ -1,5 +1,6 @@
 /// <reference path="globals/mocha/index.d.ts" />
 /// <reference path="globals/node/index.d.ts" />
+/// <reference path="globals/plotly.js/index.d.ts" />
 /// <reference path="globals/react-bootstrap/index.d.ts" />
 /// <reference path="globals/react-dom/index.d.ts" />
 /// <reference path="globals/react-redux/index.d.ts" />

@@ -1,0 +1,8 @@
+{
+  "resolution": "main",
+  "tree": {
+    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/b9a4af1c2f47588836f62c4039d45926e50dbafd/plotly.js/plotly.js.d.ts",
+    "raw": "registry:dt/plotly.js#0.0.0+20160724062714",
+    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/b9a4af1c2f47588836f62c4039d45926e50dbafd/plotly.js/plotly.js.d.ts"
+  }
+}
