@@ -10,5 +10,6 @@
 /// <reference path="globals/seamless-immutable/index.d.ts" />
 /// <reference path="globals/superagent/index.d.ts" />
 /// <reference path="globals/underscore/index.d.ts" />
+/// <reference path="globals/react-plotlyjs/index.d.ts" />
 /// <reference path="modules/chai/index.d.ts" />
 /// <reference path="modules/lodash/index.d.ts" />

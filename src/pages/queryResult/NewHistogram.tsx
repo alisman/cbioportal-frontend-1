@@ -1,23 +1,28 @@
-import React from 'react';
+import * as React from 'react';
 import oncoprintData from './mockData/oncoprintData';
 import Plotly from 'react-plotlyjs';
-import _ from 'lodash';
+import * as _ from 'lodash';
 import transformData from './transformData';
 
 import cancerData from './mockData/cancerTypes';
 
-export default class Histogram extends React.Component {
+interface IHistogramProps {
+    status: string;
+    data: any;
+}
 
-    render() {
+export default class Histogram extends React.Component<IHistogramProps, {}>  {
 
+    public render() {
+//
         if (this.props.status === 'fetching') {
-            return null;
+            return <div>fetching</div>;
         } else {
 
-            const mockData = transformData(oncoprintData, cancerData);
+            const mockData: any = transformData(oncoprintData, cancerData);
 
             const alterationList = mockData[0].alterations;
-            const cancerTypes = _.map(mockData, (item) => item.typeOfCancer);
+            const cancerTypes = _.map(mockData, (item: any) => item.typeOfCancer);
 
             let traces = [];
 
@@ -25,7 +30,7 @@ export default class Histogram extends React.Component {
                 if (key !== 'all') {
                     traces.push({
                         x: cancerTypes,
-                        y: _.map(mockData, (cancer)=>cancer.alterations[key] / cancer.caseSetLength),
+                        y: _.map(mockData, (cancer: any)=>cancer.alterations[key] / cancer.caseSetLength),
                         name: key,
                         type: 'bar'
                     });

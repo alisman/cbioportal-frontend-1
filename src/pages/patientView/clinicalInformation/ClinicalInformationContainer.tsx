@@ -9,7 +9,7 @@ import { connect } from 'react-redux';
 type TODO = any;
 
 interface IClinicalInformationContainerProps {
-    status: TODO;
+    status: string;
     patient: TODO;
     samples: Array<ClinicalDataBySampleId>;
     loadClinicalInformationTableData: void;
