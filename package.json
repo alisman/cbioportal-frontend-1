@@ -119,7 +119,7 @@
     "@types/react-spinkit": "^1.1.28",
     "@types/redux": "^3.6.0",
     "@types/seamless-immutable": "^6.1.2",
-    "@types/superagent": "^2.0.36",
+    "@types/superagent": "^2.0.36"
   },
   "devDependencies": {
 
