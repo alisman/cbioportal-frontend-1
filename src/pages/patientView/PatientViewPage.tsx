@@ -111,10 +111,9 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
         this.hotspots3dClient = new CancerHotspotsAPI(getHotspots3DApiUrl());
 
         //TODO: this should be done by a module so that it can be reused on other pages
-        const qs = queryString.parse((window as any).location.search);
 
         const reaction1 = reaction(
-            () => props.routing.query,
+            () => props.routing.location.query,
             query => {
 
                 if ('studyId' in query) {
@@ -340,10 +339,6 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
 
         const paramArray: string[] = [];
 
-        // _.each(newProps, (val: string, key: string)=>paramArray.push(`${key}=${val}`));
-        //
-        // console.log(paramArray.join('&'));
-
         // note that $.param is going to encode the URI
         const params = $.param(newProps);
 
@@ -414,7 +409,9 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
         return (
             <div className="patientViewPage">
 
-                <div className="studyMetaBar">
+
+                <div className="topBanner">
+                <div className="studyMetaBar contentWidth">
                     <div>
                         <If condition={(cohortNav != null)}>{cohortNav}</If>
                     </div>
@@ -442,6 +439,7 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                     </div>
                 )
                 }
+                </div>
                 <If condition={patientViewPageStore.patientViewData.isComplete}>
                 <Then>
                 <MSKTabs id="patientViewPageTabs" activeTabId={this.props.routing.query.tab}  onTabClick={(id:string)=>this.handleTabChange(id)} className="mainTabs">
@@ -461,7 +459,7 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
 
                             }
 
-                            <FeatureTitle title="Genomic Data" isLoading={ (patientViewPageStore.mutationData.isPending || patientViewPageStore.cnaSegments.isPending) } />
+                            <FeatureTitle title="Genomic Overview" isLoading={ (patientViewPageStore.mutationData.isPending || patientViewPageStore.cnaSegments.isPending) } />
 
                             {
                                 (patientViewPageStore.mutationData.isComplete && patientViewPageStore.cnaSegments.isComplete && sampleManager) && (
