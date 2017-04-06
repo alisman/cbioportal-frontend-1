@@ -289,6 +289,14 @@ export type SampleList = {
         'studyId': string
 
 };
+export type MutationCount = {
+    'geneticProfileId': string
+
+        'mutationCount': number
+
+        'sampleId': string
+
+};
 
 /**
  * A web service for supplying JSON formatted data to cBioPortal clients.
@@ -1678,9 +1686,164 @@ export default class CBioPortalAPI {
             });
         };
 
-    getMutationsInGeneticProfileUsingGETURL(parameters: {
+    getMutationCountsInGeneticProfileBySampleListIdUsingGETURL(parameters: {
         'geneticProfileId': string,
-        'sampleId': string,
+        'sampleListId': string,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/genetic-profiles/{geneticProfileId}/mutation-counts';
+
+        path = path.replace('{geneticProfileId}', parameters['geneticProfileId'] + '');
+        if (parameters['sampleListId'] !== undefined) {
+            queryParameters['sampleListId'] = parameters['sampleListId'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Get mutation counts in a genetic profile by Sample List ID
+     * @method
+     * @name CBioPortalAPI#getMutationCountsInGeneticProfileBySampleListIdUsingGET
+     * @param {string} geneticProfileId - Genetic Profile ID e.g. acc_tcga_mutations
+     * @param {string} sampleListId - Sample List ID e.g. acc_tcga_all
+     */
+    getMutationCountsInGeneticProfileBySampleListIdUsingGET(parameters: {
+            'geneticProfileId': string,
+            'sampleListId': string,
+            $queryParameters ? : any,
+            $domain ? : string
+        }): Promise < Array < MutationCount >
+        > {
+            const domain = parameters.$domain ? parameters.$domain : this.domain;
+            const errorHandlers = this.errorHandlers;
+            const request = this.request;
+            let path = '/genetic-profiles/{geneticProfileId}/mutation-counts';
+            let body: any;
+            let queryParameters: any = {};
+            let headers: any = {};
+            let form: any = {};
+            return new Promise(function(resolve, reject) {
+                headers['Accept'] = 'application/json';
+                headers['Content-Type'] = 'application/json';
+
+                path = path.replace('{geneticProfileId}', parameters['geneticProfileId'] + '');
+
+                if (parameters['geneticProfileId'] === undefined) {
+                    reject(new Error('Missing required  parameter: geneticProfileId'));
+                    return;
+                }
+
+                if (parameters['sampleListId'] !== undefined) {
+                    queryParameters['sampleListId'] = parameters['sampleListId'];
+                }
+
+                if (parameters['sampleListId'] === undefined) {
+                    reject(new Error('Missing required  parameter: sampleListId'));
+                    return;
+                }
+
+                if (parameters.$queryParameters) {
+                    Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                        var parameter = parameters.$queryParameters[parameterName];
+                        queryParameters[parameterName] = parameter;
+                    });
+                }
+
+                request('GET', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+            }).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
+
+    fetchMutationCountsInGeneticProfileUsingPOSTURL(parameters: {
+        'geneticProfileId': string,
+        'sampleIds': Array < string > ,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/genetic-profiles/{geneticProfileId}/mutation-counts/fetch';
+
+        path = path.replace('{geneticProfileId}', parameters['geneticProfileId'] + '');
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Fetch mutation counts in a genetic profile by sample IDs
+     * @method
+     * @name CBioPortalAPI#fetchMutationCountsInGeneticProfileUsingPOST
+     * @param {string} geneticProfileId - Genetic Profile ID e.g. acc_tcga_mutations
+     * @param {} sampleIds - List of Sample IDs
+     */
+    fetchMutationCountsInGeneticProfileUsingPOST(parameters: {
+            'geneticProfileId': string,
+            'sampleIds': Array < string > ,
+            $queryParameters ? : any,
+            $domain ? : string
+        }): Promise < Array < MutationCount >
+        > {
+            const domain = parameters.$domain ? parameters.$domain : this.domain;
+            const errorHandlers = this.errorHandlers;
+            const request = this.request;
+            let path = '/genetic-profiles/{geneticProfileId}/mutation-counts/fetch';
+            let body: any;
+            let queryParameters: any = {};
+            let headers: any = {};
+            let form: any = {};
+            return new Promise(function(resolve, reject) {
+                headers['Accept'] = 'application/json';
+                headers['Content-Type'] = 'application/json';
+
+                path = path.replace('{geneticProfileId}', parameters['geneticProfileId'] + '');
+
+                if (parameters['geneticProfileId'] === undefined) {
+                    reject(new Error('Missing required  parameter: geneticProfileId'));
+                    return;
+                }
+
+                if (parameters['sampleIds'] !== undefined) {
+                    body = parameters['sampleIds'];
+                }
+
+                if (parameters['sampleIds'] === undefined) {
+                    reject(new Error('Missing required  parameter: sampleIds'));
+                    return;
+                }
+
+                if (parameters.$queryParameters) {
+                    Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                        var parameter = parameters.$queryParameters[parameterName];
+                        queryParameters[parameterName] = parameter;
+                    });
+                }
+
+                request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+            }).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
+
+    getMutationsInGeneticProfileBySampleListIdUsingGETURL(parameters: {
+        'geneticProfileId': string,
+        'sampleListId': string,
         'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
         'pageSize' ? : number,
         'pageNumber' ? : number,
@@ -1692,8 +1855,8 @@ export default class CBioPortalAPI {
         let path = '/genetic-profiles/{geneticProfileId}/mutations';
 
         path = path.replace('{geneticProfileId}', parameters['geneticProfileId'] + '');
-        if (parameters['sampleId'] !== undefined) {
-            queryParameters['sampleId'] = parameters['sampleId'];
+        if (parameters['sampleListId'] !== undefined) {
+            queryParameters['sampleListId'] = parameters['sampleListId'];
         }
 
         if (parameters['projection'] !== undefined) {
@@ -1727,20 +1890,20 @@ export default class CBioPortalAPI {
     };
 
     /**
-     * Get mutations in a genetic profile
+     * Get mutations in a genetic profile by Sample List ID
      * @method
-     * @name CBioPortalAPI#getMutationsInGeneticProfileUsingGET
+     * @name CBioPortalAPI#getMutationsInGeneticProfileBySampleListIdUsingGET
      * @param {string} geneticProfileId - Genetic Profile ID e.g. acc_tcga_mutations
-     * @param {string} sampleId - Sample ID e.g. TCGA-OR-A5J2-01
+     * @param {string} sampleListId - Sample List ID e.g. acc_tcga_all
      * @param {string} projection - Level of detail of the response
      * @param {integer} pageSize - Page size of the result list
      * @param {integer} pageNumber - Page number of the result list
      * @param {string} sortBy - Name of the property that the result list is sorted by
      * @param {string} direction - Direction of the sort
      */
-    getMutationsInGeneticProfileUsingGET(parameters: {
+    getMutationsInGeneticProfileBySampleListIdUsingGET(parameters: {
             'geneticProfileId': string,
-            'sampleId': string,
+            'sampleListId': string,
             'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
             'pageSize' ? : number,
             'pageNumber' ? : number,
@@ -1769,12 +1932,12 @@ export default class CBioPortalAPI {
                     return;
                 }
 
-                if (parameters['sampleId'] !== undefined) {
-                    queryParameters['sampleId'] = parameters['sampleId'];
+                if (parameters['sampleListId'] !== undefined) {
+                    queryParameters['sampleListId'] = parameters['sampleListId'];
                 }
 
-                if (parameters['sampleId'] === undefined) {
-                    reject(new Error('Missing required  parameter: sampleId'));
+                if (parameters['sampleListId'] === undefined) {
+                    reject(new Error('Missing required  parameter: sampleListId'));
                     return;
                 }
 
@@ -1858,7 +2021,7 @@ export default class CBioPortalAPI {
     };
 
     /**
-     * Fetch mutations in a genetic profile by sample ID
+     * Fetch mutations in a genetic profile by sample IDs
      * @method
      * @name CBioPortalAPI#fetchMutationsInGeneticProfileUsingPOST
      * @param {string} geneticProfileId - Genetic Profile ID e.g. acc_tcga_mutations
