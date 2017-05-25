@@ -38,7 +38,8 @@ export default class BarGraph extends React.Component<IBarGraphProps, {colors: s
     getShortName(cancerStudiesObj:ICounterObj) {
         const aliases:{[id:string]:string} = {
             'Ovarian': 'Ovary', 'Cervical': 'Cervix', 'Uterine': 'Uterus',
-            'Melanoma': 'Skin', 'CCLE':'Mixed', 'Thymoma(TCGA)': 'Thymus', 'Uveal': 'Eye'
+            'Melanoma': 'Skin', 'CCLE':'Mixed', 'Thymoma(TCGA)': 'Thymus', 'Uveal': 'Eye',
+            'Testicular': 'Testicle'
         };
         return _.mapValues(cancerStudiesObj, (cancerStudy) => {
             const shortName = cancerStudy.shortName.split(" ")[0];
