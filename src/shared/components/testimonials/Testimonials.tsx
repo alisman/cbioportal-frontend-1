@@ -100,7 +100,7 @@ export default class Testimonials extends React.Component <{}, {}> {
                 <CSSTransitionGroup transitionName="test-trans" transitionEnterTimeout={2000} transitionLeaveTimeout={2000}>
                     <div className='testimonial-blockquote' key={testimonialIndex}>
                         <p>"{activeTestimonial.quote}"</p>
-                        <cite>--{activeTestimonial.cite}</cite>
+                        <cite>-- {activeTestimonial.cite}</cite>
                         <div className="testimonial-links">
                             <a href="what_people_are_saying.jsp" >View All</a>
                             <a href="mailto:cbioportal@cbio.mskcc.org?subject=cBioPortal Testimonial&body=Job Title:%0D%0APlace of Employment:%0D%0ATestimonial:%0D%0A%0D%0AThank you for taking the time to submit your opinion.">
