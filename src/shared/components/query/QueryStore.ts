@@ -220,6 +220,7 @@ export class QueryStore
 	@observable showSelectedStudiesOnly:boolean = false;
 	@observable.shallow selectedCancerTypeIds:string[] = [];
 	@observable clickAgainToDeselectSingle:boolean = true;
+	@observable searchExampleMessage = "";
 
 	@observable private _maxTreeDepth:number = 3;
 	@computed get maxTreeDepth()
@@ -236,7 +237,17 @@ export class QueryStore
 	// REMOTE DATA
 	////////////////////////////////////////////////////////////////////////////////
 
-	readonly cancerTypes = remoteData(client.getAllCancerTypesUsingGET({}), []);
+	readonly cancerTypes = remoteData({
+		invoke: async () => {
+			return client.getAllCancerTypesUsingGET({}).then((data)=>{
+				// all types should have parent. this is a correction for a data issue
+				// where there IS a top level (parent=null) item
+				return data.filter(cancerType => {
+					return cancerType.parent !== 'null';
+				});
+			});
+		}
+	}, []);
 
 	readonly cancerStudies = remoteData(client.getAllStudiesUsingGET({}), []);
 
@@ -828,6 +839,15 @@ export class QueryStore
 		{
 			this.selectedCancerTypeIds = [clickedCancerTypeId];
 		}
+	}
+
+	@action setSearchText(searchText: string) {
+		this.clearSelectedCancerType();
+		this.searchText = searchText;
+	}
+
+	@action clearSelectedCancerType(){
+		this.selectedCancerTypeIds = [];
 	}
 
 	@action selectGeneticProfile(profile:GeneticProfile, checked:boolean)
