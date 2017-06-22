@@ -36,6 +36,7 @@ import {
     fetchMutSigData, findMrnaRankGeneticProfileId, mergeDiscreteCNAData, fetchSamplesForPatient, fetchClinicalData,
     fetchCopyNumberSegments, fetchClinicalDataForPatient
 } from "shared/lib/StoreUtils";
+import {PatientWithClinicalData} from "../../../shared/model/PatientWithClinicalData";
 
 type PageMode = 'patient' | 'sample';
 
@@ -87,17 +88,17 @@ export function handlePathologyReportCheckResponse(resp: any): PathologyReportPD
  * in the store
  */
 function transformClinicalInformationToStoreShape(patientId: string, studyId: string, clinicalDataPatient: Array<ClinicalData>, clinicalDataSample: Array<ClinicalData>): ClinicalInformationData {
-    const patient = {
+    const patient: PatientWithClinicalData = {
         id: patientId,
-        clinicalData: clinicalDataPatient
+        clinicalData: clinicalDataPatient,
+        studyId:studyId
     };
     const samples = groupByEntityId(clinicalDataSample);
-    const rv = {
+
+    return {
         patient,
         samples,
     };
-
-    return rv;
 }
 
 export class PatientViewPageStore {

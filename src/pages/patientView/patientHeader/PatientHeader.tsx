@@ -8,11 +8,13 @@ import {placeArrowBottomLeft} from "shared/components/DefaultTooltip";
 
 import styles from './styles.module.scss';
 import DefaultTooltip from "../../../shared/components/DefaultTooltip";
+import {PatientWithClinicalData} from "../../../shared/model/PatientWithClinicalData";
 
 export type IPatientHeaderProps = {
-    patient:any;
+    patient:PatientWithClinicalData;
     handlePatientClick:any;
     darwinUrl?: string;
+    studyId:string;
 }
 export default class PatientHeader extends React.Component<IPatientHeaderProps, {}> {
     public render() {
@@ -59,7 +61,14 @@ export default class PatientHeader extends React.Component<IPatientHeaderProps, 
                 onPopupAlign={placeArrowBottomLeft}
             >
                 <span className='clinical-spans' id='patient-attributes'>
-                    <a href="javascript:void(0)" onClick={()=>this.props.handlePatientClick(patient.id)}>{patient.id}</a>
+                    <a href={`case.do?#/patient?caseId=${patient.id}&studyId=${this.props.studyId}`} onClick={(e:React.MouseEvent<HTMLAnchorElement>)=>{
+                        if (!e.shiftKey && !e.altKey && !e.metaKey) {
+                            e.preventDefault();
+                            this.props.handlePatientClick(patient.id)
+                        }
+                    }}>
+                        {patient.id}
+                    </a>
                     {getSpanElements(fromPairs(patient.clinicalData.map((x: any) => [x.clinicalAttributeId, x.value])), 'lgg_ucsf_2014')}
                 </span>
             </DefaultTooltip>

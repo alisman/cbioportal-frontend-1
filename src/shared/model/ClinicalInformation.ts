@@ -1,11 +1,8 @@
-import {ClinicalData} from "shared/api/generated/CBioPortalAPI";
 import {ClinicalDataBySampleId} from "shared/api/api-types-extended";
+import {PatientWithClinicalData} from "./PatientWithClinicalData";
 
 export type ClinicalInformationData = {
-    patient?: {
-        id: string,
-        clinicalData: ClinicalData[]
-    },
+    patient?: PatientWithClinicalData,
     samples?: ClinicalDataBySampleId[],
     nodes?: any[]//PDXNode[],
 };

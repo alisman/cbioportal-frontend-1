@@ -5,6 +5,7 @@ import { ClinicalDataBySampleId } from "../../../shared/api/api-types-extended";
 import {ClinicalData} from "../../../shared/api/generated/CBioPortalAPI";
 import {ClinicalInformationData} from "shared/model/ClinicalInformation";
 import {getCbioPortalApiUrl} from "../../../shared/api/urls";
+import {PatientWithClinicalData} from "../../../shared/model/PatientWithClinicalData";
 //import { getTreeNodesFromClinicalData, PDXNode } from './PDXTree';
 //import sampleQuery from 'shared/api/mock/Samples_query_patient_P04.json';
 
@@ -26,37 +27,18 @@ export function groupByEntityId(clinicalDataArray: Array<ClinicalData>) {
  * in the store
  */
 function transformClinicalInformationToStoreShape(patientId: string, studyId: string, clinicalDataPatient: Array<ClinicalData>, clinicalDataSample: Array<ClinicalData>):ClinicalInformationData {
-    const patient = {
+    const patient: PatientWithClinicalData = {
         id: patientId,
-        clinicalData: clinicalDataPatient
+        clinicalData: clinicalDataPatient,
+        studyId:studyId
     };
 
     const samples = groupByEntityId(clinicalDataSample);
 
-    // // create object with sample ids as keys and values are objects
-    // // that have clinical attribute ids as keys (only PDX_PARENT is
-    // // important for the PDX tree)
-    // const clinicalDataMap = samples.reduce((map, obj: any) => {
-    //     const pdxParent = obj.clinicalData.find((x: TODO) => x.id === 'PDX_PARENT' && x.value !== 'N/A');
-    //
-    //     if (pdxParent) {
-    //         // eslint-disable-next-line
-    //         map[obj.id] = { PDX_PARENT: pdxParent.value };
-    //     } else {
-    //         // eslint-disable-next-line
-    //         map[obj.id] = {};
-    //     }
-    //
-    //     return map;
-    // }, {});
-
-    const rv = {
+    return {
         patient,
-        samples,
-        //nodes: getTreeNodesFromClinicalData(clinicalDataMap, sampleOrder)[0],
+        samples
     };
-
-    return rv;
 }
 
 const tsClient = new CBioPortalAPI(getCbioPortalApiUrl());
