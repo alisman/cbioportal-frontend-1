@@ -1,9 +1,9 @@
 import mockClinicalData from "../../../../shared/api/mock/Clinical_data_study_ucec_tcga_pub.json";
 import { ClinicalData } from "../../../../shared/api/generated/CBioPortalAPI";
 import { default as convertSampleData, IConvertedSamplesData } from "./convertSamplesData";
-import { groupByEntityId } from '../getClinicalInformationData';
 import { ClinicalDataBySampleId } from "../../../../shared/api/api-types-extended";
 import {assert} from "chai";
+import {groupByEntityId} from "../PatientViewPageStore";
 
 describe('convertSamplesData', () => {
     it('api data is properly transformed into table data', () => {
