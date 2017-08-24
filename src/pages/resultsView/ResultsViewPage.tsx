@@ -7,6 +7,7 @@ import AjaxErrorModal from "shared/components/AjaxErrorModal";
 import exposeComponentRenderer from 'shared/lib/exposeComponentRenderer';
 import {ResultsViewPageStore} from "./ResultsViewPageStore";
 import Mutations from "./mutation/Mutations";
+import MutualExclusivityTab from "./mutualExclusivity/MutualExclusivityTab";
 
 const resultsViewPageStore = new ResultsViewPageStore();
 
@@ -49,6 +50,10 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
         //             if ('geneList' in query) {
         //                 resultsViewPageStore.hugoGeneSymbols = (query.geneList as string).split(" ");
         //             }
+        //
+        //             if ('tab' in query) {
+        //                 resultsViewPageStore.tab = query.tab as string;
+        //             }
         //         }
         //         else {
         //             resultsViewPageStore.urlValidationError = validationResult.message;
@@ -62,7 +67,6 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
     public exposeComponentRenderersToParentScript(){
 
         exposeComponentRenderer('renderMutationsTab', (props:{genes:string[], studyId:string, samples:string[]|string})=>{
-            const resultsViewPageStore = new ResultsViewPageStore();
             resultsViewPageStore.hugoGeneSymbols = props.genes;
             resultsViewPageStore.studyId = props.studyId;
             if (typeof props.samples === "string") {
@@ -72,25 +76,40 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
             }
 
             return <div>
-                         <AjaxErrorModal
-                           show={(resultsViewPageStore.ajaxErrors.length > 0)}
-                           onHide={()=>{ resultsViewPageStore.clearErrors() }}
-                         />
-                        <Mutations genes={props.genes} store={resultsViewPageStore}/>
-                  </div>
+                <AjaxErrorModal
+                    show={(resultsViewPageStore.ajaxErrors.length > 0)}
+                    onHide={()=>{ resultsViewPageStore.clearErrors() }}
+                />
+                <Mutations genes={props.genes} store={resultsViewPageStore}/>
+            </div>
         });
+
+        exposeComponentRenderer('renderMutExTab', (props:{genes:string[], studyId:string, samples:string[]|string})=>{
+
+            const isSampleAlteredMap = {
+                "EGFR": [true,false,true,true,false,false,true,true,false,false],
+                "KRAS": [false,true,false,false,true,true,false,false,true,true],
+                "TP53": [false,false,false,false,false,true,false,false,true,true],
+                "BRAF": [false,false,false,true,false,true,false,false,true,true]
+            };
+
+            return <div>
+                <MutualExclusivityTab isSampleAlteredMap={isSampleAlteredMap}/>
+            </div>
+        });
+
     }
 
     public render() {
 
         return null;
 
-        //
-        // return null;
-        //
         // if (resultsViewPageStore.urlValidationError) {
         //     return <ValidationAlert urlValidationError={resultsViewPageStore.urlValidationError} />;
         // }
+        //
+
+
         //
         // return (
         //     <div className="resultsViewPage">
@@ -99,11 +118,17 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
         //             onHide={()=>{ resultsViewPageStore.clearErrors() }}
         //         />
         //
+        //         {resultsViewPageStore.tab === "mutation" &&
         //         <Mutations
         //             genes={resultsViewPageStore.hugoGeneSymbols || []}
         //             store={resultsViewPageStore}
         //             routing={this.props.routing}
         //         />
+        //         }
+        //
+        //         {resultsViewPageStore.tab === "mutualExclusivity" &&
+        //         <MutualExclusivityTab isSampleAlteredMap={isSampleAlteredMap}/>
+        //         }
         //     </div>
         // );
     }
