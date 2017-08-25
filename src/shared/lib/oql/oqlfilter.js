@@ -1,7 +1,6 @@
 // Requires parser to be window object, window.oql_parser
 // Heavily dependent on OQL PEGjs specification
 import oql_parser from './oql-parser';
-import { default as defaultAccessors } from './accessors';
 
 var parseOQLQuery = function (oql_query, opt_default_oql) {
     /*	In: - oql_query, a string, an OQL query
@@ -335,13 +334,14 @@ var filterData = function (oql_query, data, _accessors, opt_default_oql, opt_by_
     var null_fn = function () {
         return null;
     };
-    var required_accessors = ['gene', 'cna', 'mut_type', 'mut_position',
-        'mut_amino_acid_change', 'exp', 'prot', 'fusion'];
+
+    // var required_accessors = ['gene', 'cna', 'mut_type', 'mut_position',
+    //     'mut_amino_acid_change', 'exp', 'prot', 'fusion'];
     // default every non-given accessor function to null
-    var accessors = {};
-    for (var i = 0; i < required_accessors.length; i++) {
-        accessors[required_accessors[i]] = _accessors[required_accessors[i]] || null_fn;
-    }
+    var accessors = _accessors;
+    // for (var i = 0; i < required_accessors.length; i++) {
+    //     accessors[required_accessors[i]] = _accessors[required_accessors[i]] || null_fn;
+    // }
 
     opt_default_oql = opt_default_oql || "";
     var parsed_query = parseOQLQuery(oql_query, opt_default_oql)
@@ -370,7 +370,7 @@ var filterData = function (oql_query, data, _accessors, opt_default_oql, opt_by_
 
 
 
-export function filterCBioPortalWebServiceData(oql_query, data, opt_default_oql, opt_by_oql_line, opt_mark_oql_regulation_direction) {
+export function filterCBioPortalWebServiceData(oql_query, data, accessors, opt_default_oql, opt_by_oql_line, opt_mark_oql_regulation_direction) {
     /* Wrapper method for filterData that has the cBioPortal default accessor functions
      * Note that for use, the input data must have the field 'genetic_alteration_type,' which
      * takes one of the following values:
@@ -387,7 +387,7 @@ export function filterCBioPortalWebServiceData(oql_query, data, opt_default_oql,
         "2": "amp"
     };
 
-    return filterData(oql_query, data, defaultAccessors, opt_default_oql, opt_by_oql_line, opt_mark_oql_regulation_direction);
+    return filterData(oql_query, data, accessors, opt_default_oql, opt_by_oql_line, opt_mark_oql_regulation_direction);
 }
 
 

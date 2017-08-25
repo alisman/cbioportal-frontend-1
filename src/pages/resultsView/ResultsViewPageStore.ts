@@ -1,5 +1,5 @@
 import {
-    DiscreteCopyNumberFilter, DiscreteCopyNumberData
+    DiscreteCopyNumberFilter, DiscreteCopyNumberData, Mutation
 } from "shared/api/generated/CBioPortalAPI";
 import client from "shared/api/cbioportalClientInstance";
 import {computed, observable, action} from "mobx";
@@ -169,7 +169,6 @@ export class ResultsViewPageStore {
             return _.mapValues(this.mutationMapperStores,(store:MutationMapperStore)=>store.mutationData.result);
         }
     });
-
 
     readonly geneticProfileIdDiscrete = remoteData({
         await: () => [

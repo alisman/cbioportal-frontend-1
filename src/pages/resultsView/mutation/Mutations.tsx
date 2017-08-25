@@ -6,6 +6,9 @@ import MutationMapper from "./MutationMapper";
 import {observable, computed} from "mobx";
 import AppConfig from 'appConfig';
 import "./mutations.scss";
+import {filterCBioPortalWebServiceData} from '../../../shared/lib/oql/oqlfilter';
+import accessors from '../../../shared/lib/oql/accessors';
+import {GeneticProfile} from "../../../shared/api/generated/CBioPortalAPI";
 
 export interface IMutationsPageProps {
     routing?: any;
@@ -83,8 +86,9 @@ export default class Mutations extends React.Component<IMutationsPageProps, {}>
             }
         });
 
-        if (this.props.store.allMutations.isComplete) {
-            console.log("shmoo", this.props.store.allMutations.result);
+        if (this.props.store.allMutations.isComplete && this.props.store.geneticProfilesInStudy) {
+            console.log(filterCBioPortalWebServiceData('KRAS: MUT = NONSENSE', this.props.store.allMutations.result.KRAS, (new accessors(this.props.store.geneticProfilesInStudy.result)) ));
+            //console.log("shmoo", this.props.store.allMutations.result);
         }
 
         return tabs;
