@@ -19,6 +19,7 @@ import {
 } from "shared/lib/StoreUtils";
 import {MutationMapperStore} from "./mutation/MutationMapperStore";
 import AppConfig from "appConfig";
+import * as _ from 'lodash';
 
 export class ResultsViewPageStore {
 
@@ -158,6 +159,17 @@ export class ResultsViewPageStore {
             studyId: this.studyId
         });
     }, []);
+
+    //NOTE: this can only be invoked after mutationMapperStores is populated.  not great.
+    readonly allMutations = remoteData({
+        await: () =>
+            _.flatMap(this.mutationMapperStores,(store:MutationMapperStore)=>store.mutationData)
+        ,
+        invoke: async () => {
+            return _.mapValues(this.mutationMapperStores,(store:MutationMapperStore)=>store.mutationData.result);
+        }
+    });
+
 
     readonly geneticProfileIdDiscrete = remoteData({
         await: () => [
