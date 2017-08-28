@@ -86,9 +86,10 @@ export default class Mutations extends React.Component<IMutationsPageProps, {}>
             }
         });
 
-        if (this.props.store.allMutations.isComplete && this.props.store.geneticProfilesInStudy) {
-            console.log(filterCBioPortalWebServiceData('KRAS: MUT = NONSENSE', this.props.store.allMutations.result.KRAS, (new accessors(this.props.store.geneticProfilesInStudy.result)) ));
+        if (this.props.store.allMutations.isComplete && this.props.store.geneticProfilesInStudy && this.props.store.isSampleAlteredMap) {
+            console.log(filterCBioPortalWebServiceData('KRAS: MUT = MISSENSE', this.props.store.allMutations.result.KRAS, (new accessors(this.props.store.geneticProfilesInStudy.result)) ));
             //console.log("shmoo", this.props.store.allMutations.result);
+            console.log(this.props.store.isSampleAlteredMap.result);
         }
 
         return tabs;

@@ -103,7 +103,7 @@ export default class accessors {
         if (this.alterationType(d.geneticProfileId) === 'MUTATION_EXTENDED') {
             if (d.mutationType === "fusion") {
                 return null;
-            } else if (d.aminoAcidChange.toLowerCase() === "promoter") {
+            } else if (d.aminoAcidChange && d.aminoAcidChange.toLowerCase() === "promoter") {
                 return "promoter";
             } else {
                 return getSimplifiedMutationType(d.mutationType);

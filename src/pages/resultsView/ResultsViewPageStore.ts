@@ -20,13 +20,15 @@ import {
 import {MutationMapperStore} from "./mutation/MutationMapperStore";
 import AppConfig from "appConfig";
 import * as _ from 'lodash';
+import accessors from "../../shared/lib/oql/accessors";
+import {filterCBioPortalWebServiceData} from "../../shared/lib/oql/oqlfilter";
 
 export class ResultsViewPageStore {
 
     constructor() {
         labelMobxPromises(this);
 
-        addErrorHandler((error:any) => {
+        addErrorHandler((error: any) => {
             this.ajaxErrors.push(error);
         });
     }
@@ -40,11 +42,13 @@ export class ResultsViewPageStore {
     @observable hugoGeneSymbols: string[]|null = null;
     @observable sampleList: string[]|null = null;
 
+    @observable oqlQuery: string = '';
+
     readonly mutationGeneticProfileId = remoteData({
         await: () => [
             this.geneticProfilesInStudy
         ],
-        invoke: async () => findMutationGeneticProfileId(this.geneticProfilesInStudy, this.studyId)
+        invoke: async() => findMutationGeneticProfileId(this.geneticProfilesInStudy, this.studyId)
     });
 
     @computed get myCancerGenomeData() {
@@ -53,12 +57,11 @@ export class ResultsViewPageStore {
 
     protected mutationMapperStores: {[hugoGeneSymbol: string]: MutationMapperStore} = {};
 
-    public getMutationMapperStore(hugoGeneSymbol:string): MutationMapperStore|undefined
-    {
+    public getMutationMapperStore(hugoGeneSymbol: string): MutationMapperStore|undefined {
         if (this.mutationMapperStores[hugoGeneSymbol]) {
             return this.mutationMapperStores[hugoGeneSymbol];
         }
-        else if (!this.hugoGeneSymbols || !this.hugoGeneSymbols.find((gene:string) => gene === hugoGeneSymbol)) {
+        else if (!this.hugoGeneSymbols || !this.hugoGeneSymbols.find((gene: string) => gene === hugoGeneSymbol)) {
             return undefined;
         }
         else {
@@ -78,7 +81,7 @@ export class ResultsViewPageStore {
         }
     }
 
-    readonly sampleIds = remoteData(async () => {
+    readonly sampleIds = remoteData(async() => {
         // first priority: user provided custom sample list
         if (this.sampleList) {
             // cannot return an observable array directly, need to create a copy
@@ -99,13 +102,16 @@ export class ResultsViewPageStore {
             this.sampleIds
         ],
         invoke: () => {
-            const clinicalDataSingleStudyFilter = {attributeIds: ["CANCER_TYPE", "CANCER_TYPE_DETAILED"], ids: this.sampleIds.result};
+            const clinicalDataSingleStudyFilter = {
+                attributeIds: ["CANCER_TYPE", "CANCER_TYPE_DETAILED"],
+                ids: this.sampleIds.result
+            };
             return fetchClinicalDataInStudy(this.studyId, clinicalDataSingleStudyFilter, 'SAMPLE')
         }
     }, []);
 
     readonly germlineConsentedSampleIds = remoteData({
-        invoke: async () => {
+        invoke: async() => {
             if (this.germlineSampleListId) {
                 return await client.getAllSampleIdsInSampleListUsingGET({
                     sampleListId: this.germlineSampleListId
@@ -123,7 +129,7 @@ export class ResultsViewPageStore {
         await: () => [
             this.sampleIds
         ],
-        invoke: async () => fetchSamples(this.sampleIds, this.studyId)
+        invoke: async() => fetchSamples(this.sampleIds, this.studyId)
     }, []);
 
     readonly samplesWithoutCancerTypeClinicalData = remoteData({
@@ -131,18 +137,18 @@ export class ResultsViewPageStore {
             this.sampleIds,
             this.clinicalDataForSamples
         ],
-        invoke: async () => fetchSamplesWithoutCancerTypeClinicalData(this.sampleIds, this.studyId, this.clinicalDataForSamples)
+        invoke: async() => fetchSamplesWithoutCancerTypeClinicalData(this.sampleIds, this.studyId, this.clinicalDataForSamples)
     }, []);
 
     readonly studiesForSamplesWithoutCancerTypeClinicalData = remoteData({
         await: () => [
             this.samplesWithoutCancerTypeClinicalData
         ],
-        invoke: async () => fetchStudiesForSamplesWithoutCancerTypeClinicalData(this.samplesWithoutCancerTypeClinicalData)
+        invoke: async() => fetchStudiesForSamplesWithoutCancerTypeClinicalData(this.samplesWithoutCancerTypeClinicalData)
     }, []);
 
     readonly studies = remoteData({
-        invoke: async()=>([await client.getStudyUsingGET({studyId: this.studyId})])
+        invoke: async() => ([await client.getStudyUsingGET({studyId: this.studyId})])
     }, []);
 
     @computed get germlineSampleListId(): string|undefined {
@@ -163,10 +169,44 @@ export class ResultsViewPageStore {
     //NOTE: this can only be invoked after mutationMapperStores is populated.  not great.
     readonly allMutations = remoteData({
         await: () =>
-            _.flatMap(this.mutationMapperStores,(store:MutationMapperStore)=>store.mutationData)
+            _.flatMap(this.mutationMapperStores, (store: MutationMapperStore) => store.mutationData)
         ,
-        invoke: async () => {
-            return _.mapValues(this.mutationMapperStores,(store:MutationMapperStore)=>store.mutationData.result);
+        invoke: async() => {
+            return _.mapValues(this.mutationMapperStores, (store: MutationMapperStore) => store.mutationData.result);
+        }
+    });
+
+    readonly filteredAlterations = remoteData({
+        await: () => [
+            this.allMutations,
+            this.geneticProfilesInStudy
+        ],
+        invoke: async() => {
+
+            return _.mapValues(this.allMutations.result, (mutations: Mutation[]) => {
+                return filterCBioPortalWebServiceData(this.oqlQuery, mutations, (new accessors(this.geneticProfilesInStudy.result)))
+            });
+
+        }
+    });
+
+    readonly filteredAlterationsAsSampleIdArrays = remoteData({
+        await: () => [
+            this.filteredAlterations
+        ],
+        invoke: async() => {
+            return _.mapValues(this.filteredAlterations.result, (mutations: Mutation[]) => _.map(mutations, 'sampleId'));
+        }
+    });
+
+    readonly isSampleAlteredMap = remoteData({
+        await: () => [this.filteredAlterationsAsSampleIdArrays, this.sampleIds],
+        invoke: async() => {
+            return _.mapValues(this.filteredAlterationsAsSampleIdArrays.result, (sampleIds: string[]) => {
+                return this.sampleIds.result.map((sampleId: string) => {
+                    return _.includes(sampleIds, sampleId);
+                });
+            });
         }
     });
 
@@ -174,7 +214,7 @@ export class ResultsViewPageStore {
         await: () => [
             this.geneticProfilesInStudy
         ],
-        invoke: async () => {
+        invoke: async() => {
             return findGeneticProfileIdDiscrete(this.geneticProfilesInStudy);
         }
     });
@@ -184,11 +224,11 @@ export class ResultsViewPageStore {
             this.geneticProfileIdDiscrete,
             this.dataQueryFilter
         ],
-        invoke: async () => {
+        invoke: async() => {
             const filter = this.dataQueryFilter.result as DiscreteCopyNumberFilter;
             return fetchDiscreteCNAData(filter, this.geneticProfileIdDiscrete);
         },
-        onResult: (result:DiscreteCopyNumberData[]) => {
+        onResult: (result: DiscreteCopyNumberData[]) => {
             // We want to take advantage of this loaded data, and not redownload the same data
             //  for users of the cache
             this.discreteCNACache.addData(result);
@@ -200,10 +240,10 @@ export class ResultsViewPageStore {
         await: () => [
             this.sampleIds
         ],
-        invoke: async () => generateDataQueryFilter(this.sampleListId, this.sampleIds.result)
+        invoke: async() => generateDataQueryFilter(this.sampleListId, this.sampleIds.result)
     });
 
-    @computed get mergedDiscreteCNAData():DiscreteCopyNumberData[][] {
+    @computed get mergedDiscreteCNAData(): DiscreteCopyNumberData[][] {
         return mergeDiscreteCNAData(this.discreteCNAData);
     }
 

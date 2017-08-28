@@ -1,5 +1,6 @@
 import * as React from 'react';
-import {observer, inject } from "mobx-react";
+import * as _ from 'lodash';
+import {observer, inject, Observer} from "mobx-react";
 import {reaction, computed} from "mobx";
 import validateParameters from 'shared/lib/validateParameters';
 import ValidationAlert from "shared/components/ValidationAlert";
@@ -64,9 +65,25 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
         // );
     }
 
-    public exposeComponentRenderersToParentScript(){
+    componentDidMount(){
+        setTimeout(function(){
+            var qSession: any = (window as any).QuerySession;
 
-        exposeComponentRenderer('renderMutationsTab', (props:{genes:string[], studyId:string, samples:string[]|string})=>{
+            (window as any).renderMutExTab(document.getElementById('mutex-info-div'), {
+                studyId: qSession.getCancerStudyIds()[0],
+                genes:qSession.getQueryGenes(),
+                samples:qSession.getSampleIds(),
+                oqlQuery:qSession.oql_query
+            });
+
+        },2000);
+
+    }
+
+    public exposeComponentRenderersToParentScript() {
+
+        exposeComponentRenderer('renderMutationsTab', (props: {genes: string[], studyId: string, samples: string[]|string}) => {
+
             resultsViewPageStore.hugoGeneSymbols = props.genes;
             resultsViewPageStore.studyId = props.studyId;
             if (typeof props.samples === "string") {
@@ -84,18 +101,31 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
             </div>
         });
 
-        exposeComponentRenderer('renderMutExTab', (props:{genes:string[], studyId:string, samples:string[]|string})=>{
+        exposeComponentRenderer('renderMutExTab', (props: { oqlQuery: string, genes: string[], studyId: string, samples: string[]|string}) => {
+            resultsViewPageStore.studyId = props.studyId;
+            resultsViewPageStore.hugoGeneSymbols = props.genes;
+            resultsViewPageStore.oqlQuery = props.oqlQuery;
+            if (typeof props.samples === "string") {
+                resultsViewPageStore.sampleListId = props.samples;
+            } else {
+                resultsViewPageStore.sampleList = props.samples;
+            }
+            _.each(props.genes, (gene:string)=>resultsViewPageStore.getMutationMapperStore(gene));
 
-            const isSampleAlteredMap = {
-                "EGFR": [true,false,true,true,false,false,true,true,false,false],
-                "KRAS": [false,true,false,false,true,true,false,false,true,true],
-                "TP53": [false,false,false,false,false,true,false,false,true,true],
-                "BRAF": [false,false,false,true,false,true,false,false,true,true]
-            };
-
-            return <div>
-                <MutualExclusivityTab isSampleAlteredMap={isSampleAlteredMap}/>
-            </div>
+            // var isSampleAlteredMap = {
+            //     "EGFR": [true, false, true, true, false, false, true, true, false, false],
+            //     "KRAS": [false, true, false, false, true, true, false, false, true, true],
+            //     "TP53": [false, false, false, false, false, true, false, false, true, true],
+            //     "BRAF": [false, false, false, true, false, true, false, false, true, true]
+            // };
+            // isSampleAlteredMap = {
+            //     "KRAS": [false, false, false, false, true, false, false, false, false, false, false, true, false, false, true, true, false, false, false, false, false, false, true, false, true, false, false, false, false, true, true, false, true, false, false, false, false, false, false, false, false, true, false, true, true, true, true, false, true, false, true, false, false, true, false, false, false, true, true, false, false, true, true, false, false, false, false, true, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, true, false, false, true, true, false, true, false, false, true, true, false, false, false, true, false, true, false, true, true, true, false, false, true, true, false, false, true, false, false, true, false, true, true, true, false, false, true, true, false, true, true, false, true, true, false, true, true, false, true, true, true, true, false, false, true, true, false, true, true, true, true, false, true, true, true, false, true, false, false, true, false, true, true, true, true, false, false, true, false, true],
+            //     "NRAS": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            //     "BRAF": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+            // };
+            return (<div className="cbioportal-frontend">
+                    <MutualExclusivityTab store={resultsViewPageStore}/>
+                </div>)
         });
 
     }

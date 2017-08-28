@@ -58,7 +58,7 @@ const exampleData = [
     }
 ];
 
-const isSampleAlteredMap = {
+const isSampleAlteredMap: any = {
     "EGFR": [true, false, true, true, false, false, true, true, false, false],
     "KRAS": [false, true, false, false, true, true, false, false, true, true],
     "TP53": [false, false, false, false, false, true, false, false, true, true],
