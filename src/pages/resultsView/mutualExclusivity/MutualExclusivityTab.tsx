@@ -9,12 +9,12 @@ import Combinatorics from 'js-combinatorics';
 import fisherTest from 'fishertest';
 import Dictionary = _.Dictionary;
 import {ResultsViewPageStore} from "../ResultsViewPageStore";
+import DiscreteCNACache from "../../../shared/cache/DiscreteCNACache";
 
 export interface IMutualExclusivityTabProps {
     // a mapping from Hugo Gene Symbol to list of booleans,
     // each element of the list representing the altered status of a sample
-    isSampleAlteredMap?: Dictionary<boolean[]>;
-    store:ResultsViewPageStore
+    store?:ResultsViewPageStore
 }
 
 export function calculateAssociation(logOddsRatio: number): string {
@@ -96,6 +96,7 @@ export function getData(isSampleAlteredMap: Dictionary<boolean[]>): MutualExclus
 
     let data: MutualExclusivity[] = [];
     const combinations = Combinatorics.combination(Object.keys(isSampleAlteredMap), 2).toArray();
+
     combinations.forEach(combination => {
 
         const geneA = combination[0];
@@ -142,7 +143,7 @@ export default class MutualExclusivityTab extends React.Component<IMutualExclusi
     }
 
     @computed get data(): MutualExclusivity[] {
-        return getData(this.props.store.isSampleAlteredMap.result!);
+        return getData(this.props.store.isSampleAlteredMap.result);
     }
 
     @computed get filteredData(): MutualExclusivity[] {
@@ -163,6 +164,7 @@ export default class MutualExclusivityTab extends React.Component<IMutualExclusi
     }
 
     public render() {
+
         if (this.props.store.isSampleAlteredMap.isComplete) {
             return (
                 <div>

@@ -1,5 +1,5 @@
 import {
-    DiscreteCopyNumberFilter, DiscreteCopyNumberData, Mutation
+    DiscreteCopyNumberFilter, DiscreteCopyNumberData, Mutation, Gene, GeneticDataFilter, GeneticProfile, GeneGeneticData
 } from "shared/api/generated/CBioPortalAPI";
 import client from "shared/api/cbioportalClientInstance";
 import {computed, observable, action} from "mobx";
@@ -22,6 +22,13 @@ import AppConfig from "appConfig";
 import * as _ from 'lodash';
 import accessors from "../../shared/lib/oql/accessors";
 import {filterCBioPortalWebServiceData} from "../../shared/lib/oql/oqlfilter";
+import {keepAlive} from "mobx-utils";
+
+
+export function ourCached<T>(target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<T>) {
+    keepAlive(target, propertyKey);
+}
+
 
 export class ResultsViewPageStore {
 
@@ -37,12 +44,21 @@ export class ResultsViewPageStore {
 
     @observable ajaxErrors: Error[] = [];
 
+    @observable zScoreThreshold: number;
+
+    @observable rppaScoreThreshold: number;
+
     @observable studyId: string = '';
+
     @observable sampleListId: string|null = null;
-    @observable hugoGeneSymbols: string[]|null = null;
+
+    @observable hugoGeneSymbols: string[]|null;
+
     @observable sampleList: string[]|null = null;
 
     @observable oqlQuery: string = '';
+
+    @observable selectedGeneticProfileIds: string[] = [];
 
     readonly mutationGeneticProfileId = remoteData({
         await: () => [
@@ -160,6 +176,10 @@ export class ResultsViewPageStore {
         }
     }
 
+    readonly selectedGeneticProfiles = remoteData(() => {
+        return Promise.all(this.selectedGeneticProfileIds.map((id) => client.getGeneticProfileUsingGET({geneticProfileId: id})));
+    });
+
     readonly geneticProfilesInStudy = remoteData(() => {
         return client.getAllGeneticProfilesInStudyUsingGET({
             studyId: this.studyId
@@ -176,19 +196,90 @@ export class ResultsViewPageStore {
         }
     });
 
+    readonly geneticData = remoteData({
+        await: () => [
+            this.dataQueryFilter,
+            this.genes,
+            this.selectedGeneticProfiles
+        ],
+        invoke: async() => {
+            // we get mutations with mutations endpoint, all other alterations with this one, so filter out mutation genetic profile
+            const profilesWithoutMutationProfile = _.filter(this.selectedGeneticProfiles.result, (profile: GeneticProfile) => profile.geneticAlterationType !== 'MUTATION_EXTENDED');
+            if (profilesWithoutMutationProfile) {
+                const promises = profilesWithoutMutationProfile.map((profile: GeneticProfile) => {
+                    const filter = this.dataQueryFilter.result as GeneticDataFilter;
+                    const f = filter.asMutable();
+                    f.entrezGeneIds = this.genes.result.map(gene => gene.entrezGeneId);
+                    return client.fetchAllGeneticDataInGeneticProfileUsingPOST({
+                        geneticProfileId: profile.geneticProfileId,
+                        geneticDataFilter: f,
+                        projection: 'DETAILED'
+                    });
+                });
+                return Promise.all(promises).then((arrs: GeneGeneticData[][]) => _.concat(...arrs));
+            } else {
+                return [];
+            }
+        }
+    });
+
     readonly filteredAlterations = remoteData({
         await: () => [
             this.allMutations,
-            this.geneticProfilesInStudy
+            this.selectedGeneticProfiles,
+            this.geneticData,
+            this.defaultOQLQuery
         ],
         invoke: async() => {
 
-            return _.mapValues(this.allMutations.result, (mutations: Mutation[]) => {
-                return filterCBioPortalWebServiceData(this.oqlQuery, mutations, (new accessors(this.geneticProfilesInStudy.result)))
+            //const filteredItems = filterCBioPortalWebServiceData(this.oqlQuery, this.geneticData.result, (new accessors(this.selectedGeneticProfiles.result)));
+
+            const filteredItemsByGene = _.groupBy(this.geneticData.result, (item: GeneGeneticData) => item.gene.hugoGeneSymbol);
+
+            // now merge alterations with mutations by gene
+            const mergedAlterationsByGene = _.mapValues(this.allMutations.result, (mutations: Mutation[], gene: string) => {
+                // if for some reason it doesn't exist, assign empty array;
+                return (gene in filteredItemsByGene) ? _.concat(mutations, filteredItemsByGene[gene]) : [];
+            });
+            const ret = _.mapValues(mergedAlterationsByGene, (mutations: (Mutation|GeneGeneticData)[]) => {
+                return filterCBioPortalWebServiceData(this.oqlQuery, mutations, (new accessors(this.selectedGeneticProfiles.result)), this.defaultOQLQuery.result)
             });
 
+            return ret;
         }
     });
+
+    readonly defaultOQLQuery = remoteData({
+        await: () => [this.selectedGeneticProfiles],
+        invoke: () => {
+            const all_profile_types = _.map(this.selectedGeneticProfiles.result,(profile)=>profile.geneticAlterationType);
+            var default_oql_uniq = {};
+            for (var i = 0; i < all_profile_types.length; i++) {
+                var type = all_profile_types[i];
+                switch (type) {
+                    case "MUTATION_EXTENDED":
+                        default_oql_uniq["MUT"] = true;
+                        default_oql_uniq["FUSION"] = true;
+                        break;
+                    case "COPY_NUMBER_ALTERATION":
+                        default_oql_uniq["AMP"] = true;
+                        default_oql_uniq["HOMDEL"] = true;
+                        break;
+                    case "MRNA_EXPRESSION":
+                        default_oql_uniq["EXP>=" + this.zScoreThreshold] = true;
+                        default_oql_uniq["EXP<=-" + this.zScoreThreshold] = true;
+                        break;
+                    case "PROTEIN_LEVEL":
+                        default_oql_uniq["PROT>=" + this.rppaScoreThreshold] = true;
+                        default_oql_uniq["PROT<=-" + this.rppaScoreThreshold] = true;
+                        break;
+                }
+            }
+            return Promise.resolve(Object.keys(default_oql_uniq).join(" "));
+        }
+
+    });
+
 
     readonly filteredAlterationsAsSampleIdArrays = remoteData({
         await: () => [
@@ -210,6 +301,16 @@ export class ResultsViewPageStore {
         }
     });
 
+    readonly genes = remoteData(async() => {
+        if (this.hugoGeneSymbols) {
+            return client.fetchGenesUsingPOST({
+                geneIds: this.hugoGeneSymbols.peek(),
+                geneIdType: "HUGO_GENE_SYMBOL"
+            });
+        }
+        return undefined;
+    });
+
     readonly geneticProfileIdDiscrete = remoteData({
         await: () => [
             this.geneticProfilesInStudy
@@ -219,22 +320,25 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly discreteCNAData = remoteData({
-        await: () => [
-            this.geneticProfileIdDiscrete,
-            this.dataQueryFilter
-        ],
-        invoke: async() => {
-            const filter = this.dataQueryFilter.result as DiscreteCopyNumberFilter;
-            return fetchDiscreteCNAData(filter, this.geneticProfileIdDiscrete);
-        },
-        onResult: (result: DiscreteCopyNumberData[]) => {
-            // We want to take advantage of this loaded data, and not redownload the same data
-            //  for users of the cache
-            this.discreteCNACache.addData(result);
-        }
-
-    }, []);
+    // readonly geneticData = remoteData({
+    //     await: () => [
+    //         this.geneticProfileIdDiscrete,
+    //         this.dataQueryFilter,
+    //         this.genes
+    //     ],
+    //     invoke: async() => {
+    //
+    //         const filter = this.dataQueryFilter.result as GeneticDataFilter;
+    //         const f = filter.asMutable();
+    //         f.entrezGeneIds = this.genes.result.map(gene=>gene.entrezGeneId);
+    //
+    //         return client.fetchAllGeneticDataInGeneticProfileUsingPOST({
+    //             geneticProfileId:(this.geneticProfileIdDiscrete.result as string),
+    //             geneticDataFilter:f
+    //         });
+    //
+    //     }
+    // }, []);
 
     readonly dataQueryFilter = remoteData({
         await: () => [
@@ -243,9 +347,9 @@ export class ResultsViewPageStore {
         invoke: async() => generateDataQueryFilter(this.sampleListId, this.sampleIds.result)
     });
 
-    @computed get mergedDiscreteCNAData(): DiscreteCopyNumberData[][] {
-        return mergeDiscreteCNAData(this.discreteCNAData);
-    }
+    // @computed get mergedDiscreteCNAData(): DiscreteCopyNumberData[][] {
+    //     return mergeDiscreteCNAData(this.discreteCNAData);
+    // }
 
     @cached get oncoKbEvidenceCache() {
         return new OncoKbEvidenceCache();
@@ -256,6 +360,7 @@ export class ResultsViewPageStore {
     }
 
     @cached get discreteCNACache() {
+        console.log("instantiating");
         return new DiscreteCNACache(this.geneticProfileIdDiscrete.result);
     }
 
