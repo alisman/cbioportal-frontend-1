@@ -206,13 +206,11 @@ export class ResultsViewPageStore {
             // we get mutations with mutations endpoint, all other alterations with this one, so filter out mutation genetic profile
             const profilesWithoutMutationProfile = _.filter(this.selectedGeneticProfiles.result, (profile: GeneticProfile) => profile.geneticAlterationType !== 'MUTATION_EXTENDED');
             if (profilesWithoutMutationProfile) {
-                const promises = profilesWithoutMutationProfile.map((profile: GeneticProfile) => {
-                    const filter = this.dataQueryFilter.result as GeneticDataFilter;
-                    const f = filter.asMutable();
-                    f.entrezGeneIds = this.genes.result.map(gene => gene.entrezGeneId);
+                const promises:Promise<GeneGeneticData[]>[] = profilesWithoutMutationProfile.map((profile: GeneticProfile) => {
+                    const filter:GeneticDataFilter = (Object.assign({}, { entrezGeneIds:this.genes.result!.map(gene => gene.entrezGeneId) }, this.dataQueryFilter.result!) as GeneticDataFilter);
                     return client.fetchAllGeneticDataInGeneticProfileUsingPOST({
                         geneticProfileId: profile.geneticProfileId,
-                        geneticDataFilter: f,
+                        geneticDataFilter: filter,
                         projection: 'DETAILED'
                     });
                 });
@@ -253,7 +251,7 @@ export class ResultsViewPageStore {
         await: () => [this.selectedGeneticProfiles],
         invoke: () => {
             const all_profile_types = _.map(this.selectedGeneticProfiles.result,(profile)=>profile.geneticAlterationType);
-            var default_oql_uniq = {};
+            var default_oql_uniq: any = {};
             for (var i = 0; i < all_profile_types.length; i++) {
                 var type = all_profile_types[i];
                 switch (type) {

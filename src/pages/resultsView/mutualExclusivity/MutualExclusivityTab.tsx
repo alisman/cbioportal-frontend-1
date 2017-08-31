@@ -14,7 +14,7 @@ import DiscreteCNACache from "../../../shared/cache/DiscreteCNACache";
 export interface IMutualExclusivityTabProps {
     // a mapping from Hugo Gene Symbol to list of booleans,
     // each element of the list representing the altered status of a sample
-    store?:ResultsViewPageStore
+    store:ResultsViewPageStore
 }
 
 export function calculateAssociation(logOddsRatio: number): string {
@@ -143,7 +143,7 @@ export default class MutualExclusivityTab extends React.Component<IMutualExclusi
     }
 
     @computed get data(): MutualExclusivity[] {
-        return getData(this.props.store.isSampleAlteredMap.result);
+        return getData(this.props.store.isSampleAlteredMap.result!);
     }
 
     @computed get filteredData(): MutualExclusivity[] {
