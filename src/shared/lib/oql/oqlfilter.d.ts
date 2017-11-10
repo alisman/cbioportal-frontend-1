@@ -8,7 +8,7 @@
 
 import {OQLQuery} from "./oql-parser";
 
-export type OQLFilteredLine<T> = {
+export type OQLLineFilterOutput<T> = {
     gene: string;
     parsed_oql_line: OQLQuery;
     oql_line: string;
@@ -16,4 +16,4 @@ export type OQLFilteredLine<T> = {
 }
 
 export declare function filterCBioPortalWebServiceData<T>(oql_query:string, data:T[], accessors:any, default_oql:string, mark_oql_regulation_direction:boolean): T[];
-export declare function filterCBioPortalWebServiceDataByOQLLine<T>(oql_query:string, data:T[], accessors:any, default_oql:string, mark_oql_regulation_direction:boolean): OQLFilteredLine<T>[];
+export declare function filterCBioPortalWebServiceDataByOQLLine<T>(oql_query:string, data:T[], accessors:any, default_oql:string, mark_oql_regulation_direction:boolean): OQLLineFilterOutput<T>[];

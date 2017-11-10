@@ -38,7 +38,7 @@ import {
     ICancerTypeAlterationData
 } from "../../shared/components/cancerSummary/CancerSummaryContent";
 import {writeTest} from "../../shared/lib/writeTest";
-import {filterCBioPortalWebServiceDataByOQLLine, OQLFilteredLine} from "../../shared/lib/oql/oqlfilter";
+import {filterCBioPortalWebServiceDataByOQLLine, OQLLineFilterOutput} from "../../shared/lib/oql/oqlfilter";
 
 export type SamplesSpecificationElement = {studyId: string, sampleId: string, sampleListId: undefined} |
     {studyId: string, sampleId: undefined, sampleListId: string};
@@ -259,6 +259,18 @@ export class ResultsViewPageStore {
 
     @observable selectedMolecularProfileIds: string[] = [];
 
+    @observable mutationAnnotationSettings = {
+        ignoreUnknown: false,
+        cbioportalCount: false,
+        cbioportalCountThreshold: 10,
+        cosmicCount: false,
+        cosmicCountThreshold: 10,
+        hotspot:true,
+        oncoKb:true,
+        driverFilter: false, // todo fetch from app config
+        driverTiers: {} // todo fetch from app config
+    };
+
     readonly selectedMolecularProfiles = remoteData<MolecularProfile[]>(() => {
         return Promise.all(this.selectedMolecularProfileIds.map((id) => client.getMolecularProfileUsingGET({molecularProfileId: id})));
     });
@@ -328,7 +340,7 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly filteredAlterationsByOQLLine = remoteData<OQLFilteredLine<AlterationData>[]>({
+    readonly filteredAlterationsByOQLLine = remoteData<OQLLineFilterOutput<AlterationData>[]>({
         await: ()=>[
             this.unfilteredAlterations,
             this.selectedMolecularProfiles,
@@ -356,7 +368,7 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly caseAggregatedDataByOQLLine = remoteData<{cases:CaseAggregatedData<AlterationData>, oql:OQLFilteredLine<AlterationData>}[]>({
+    readonly caseAggregatedDataByOQLLine = remoteData<{cases:CaseAggregatedData<AlterationData>, oql:OQLLineFilterOutput<AlterationData>}[]>({
         await:()=>[
             this.filteredAlterationsByOQLLine,
             this.samples,
