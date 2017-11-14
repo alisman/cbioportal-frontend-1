@@ -6,6 +6,10 @@ import {genetic_rule_set_same_color_for_all_no_recurrence,
     genetic_rule_set_different_colors_no_recurrence,
     genetic_rule_set_different_colors_recurrence} from "./geneticrules";
 import {OncoprintPatientGeneticTrackData, OncoprintSampleGeneticTrackData} from "../../lib/QuerySession";
+import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
+import {remoteData} from "../../api/remoteData";
+import {makeGeneticTrackData} from "./DataUtils";
+import ResultsViewOncoprint from "./ResultsViewOncoprint";
 
 export function doWithRenderingSuppressedAndSortingOff(oncoprint:OncoprintJS<any>, task:()=>void) {
     oncoprint.suppressRendering();
@@ -89,11 +93,40 @@ export function getPercentAltered(oncoprintTrackData:OncoprintSampleGeneticTrack
     }
 }
 
-export function addClinicalTracks(oncoprint:OncoprintJS<any>, tracks:ClinicalTrackSpec<any>) {
-}
-
-export function addGeneticTracks(oncoprint:OncoprintJS<any>, tracks:GeneticTrackSpec) {
-}
-
-export function addHeatmapTracks(oncoprint:OncoprintJS<any>, tracks:HeatmapTrackSpec) {
+export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
+    return remoteData<GeneticTrackSpec[]>({
+        await:()=>[
+            oncoprint.props.store.genes,
+            oncoprint.props.store.samples,
+            oncoprint.props.store.patients,
+            oncoprint.props.store.caseAggregatedDataByOQLLine,
+            oncoprint.props.store.molecularProfileIdToMolecularProfile,
+            oncoprint.props.store.genePanelInformation,
+            oncoprint.props.store.alteredSampleKeys,
+            oncoprint.props.store.sequencedSampleKeys,
+            oncoprint.props.store.alteredPatientKeys,
+            oncoprint.props.store.sequencedPatientKeys
+        ],
+        invoke: async()=>{
+            return oncoprint.props.store.caseAggregatedDataByOQLLine.result!.map((x:any, index:number)=>{
+                const data = makeGeneticTrackData(
+                    sampleMode ? x.cases.samples : x.cases.patients,
+                    oncoprint.props.store.genes.result!.map(x=>x.hugoGeneSymbol),
+                    sampleMode ? oncoprint.props.store.samples.result! : oncoprint.props.store.patients.result!,
+                    oncoprint.props.store.molecularProfileIdToMolecularProfile.result!,
+                    oncoprint.props.store.genePanelInformation.result!,
+                    oncoprint.isPutativeDriver
+                );
+                return {
+                    key: index+"",
+                    label: x.oql.gene,
+                    oql: x.oql.oql_line,
+                    info: sampleMode ? percentAltered(oncoprint.props.store.alteredSampleKeys.result!.length, oncoprint.props.store.sequencedSampleKeys.result!.length)
+                                    : percentAltered(oncoprint.props.store.alteredPatientKeys.result!.length, oncoprint.props.store.sequencedPatientKeys.result!.length),
+                    data
+                };
+            });
+        },
+        default: [],
+    });   
 }

@@ -1,13 +1,17 @@
 import * as React from "react";
 import reactionWithPrev from "shared/lib/reactionWithPrev";
 import OncoprintJS, {TrackId, TrackSpec} from "oncoprintjs";
-import {ClinicalAttribute, GeneMolecularData, MolecularProfile, Mutation} from "../../api/generated/CBioPortalAPI";
+import {
+    ClinicalAttribute, GeneMolecularData, GenePanelData, MolecularProfile,
+    Mutation
+} from "../../api/generated/CBioPortalAPI";
 import {observer} from "mobx-react";
 import {computed, observable} from "mobx";
 import {doWithRenderingSuppressedAndSortingOff, getClinicalTrackRuleSetParams, getGeneticTrackRuleSetParams} from "./OncoprintUtils";
 import {getClinicalTrackSortComparator, getGeneticTrackSortComparator, heatmapTrackSortComparator} from "./SortUtils";
 import {transition} from "./DeltaUtils";
 import _ from "lodash";
+import {AlterationData} from "../../../pages/resultsView/ResultsViewPageStore";
 
 export type ClinicalTrackSpec<D> = {
     key: string; // for efficient diffing, just like in React. must be unique
@@ -43,7 +47,7 @@ export type GeneticTrackDatum = {
     study_id:string;
     uid:string;
     data:(Mutation|GeneMolecularData)[];
-    coverage?: any; // todo
+    coverage?: GenePanelData[];
     na?: boolean;
     disp_mut?:string;
     disp_cna?:string;
@@ -79,6 +83,11 @@ export interface IOncoprintProps {
     heatmapTracks: HeatmapTrackSpec[];
     divId:string;
     width:number;
+
+    annotation?:{
+        hotspots?:(d:AlterationData)=>boolean,
+        oncoKb?:(d:AlterationData)=>"likely oncogenic"|"predicted oncogenic"|"oncogenic"|false,
+    }
 
     horzZoomToFitIds?:string[];
 
@@ -140,6 +149,7 @@ export default class Oncoprint extends React.Component<IOncoprintProps, {}> {
     }
 
     private refreshOncoprint(props:IOncoprintProps) {
+        console.log("---------begin refresh--------");
         if (!this.oncoprint) {
             // instantiate new one
             this.oncoprint = new OncoprintJS(`#${props.divId}`, props.width);
@@ -148,8 +158,11 @@ export default class Oncoprint extends React.Component<IOncoprintProps, {}> {
                 props.oncoprintRef(this.oncoprint);
             }
         }
+        console.log("refresh pt A");
         transition(props, this.lastTransitionProps || {}, this.oncoprint, ()=>this.trackSpecKeyToTrackId);
+        console.log("refresh pt B");
         this.lastTransitionProps = _.clone(this.props);
+        console.log("---------end refresh---------");
     }
 
     componentWillReceiveProps(nextProps:IOncoprintProps) {

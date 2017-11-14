@@ -20,8 +20,8 @@ import OncoprintControls, {
     IOncoprintControlsState
 } from "shared/components/oncoprint/controls/OncoprintControls";
 import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
-import {ClinicalAttribute, Gene, MolecularProfile} from "../../api/generated/CBioPortalAPI";
-import {percentAltered, getPercentAltered} from "./OncoprintUtils";
+import {ClinicalAttribute, Gene, MolecularProfile, Mutation} from "../../api/generated/CBioPortalAPI";
+import {percentAltered, getPercentAltered, makeGeneticTracksMobxPromise} from "./OncoprintUtils";
 import _ from "lodash";
 import onMobxPromise from "shared/lib/onMobxPromise";
 import AppConfig from "appConfig";
@@ -32,6 +32,7 @@ import svgToPdfDownload from "shared/lib/svgToPdfDownload";
 import DefaultTooltip from "shared/components/defaultTooltip/DefaultTooltip";
 import {Button} from "react-bootstrap";
 import tabularDownload from "./tabularDownload";
+import {makeGeneticTrackData} from "./DataUtils";
 
 interface IResultsViewOncoprintProps {
     divId: string;
@@ -95,16 +96,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     @observable sortByMutationType:boolean = true;
     @observable sortByDrivers:boolean = true;
 
-    @observable annotateDriversOncoKb:boolean;
-    @observable annotateDriversHotspots:boolean;
-    @observable annotateDriversCBioPortal:boolean;
-    @observable annotateDriversCOSMIC:boolean;
-    @observable annotateDriversCBioPortalThreshold:string;
-    @observable annotateDriversCOSMICThreshold:string;
-    @observable hidePutativePassengers:boolean;
-    @observable annotateCustomDriverBinary:boolean;
-    private selectedCustomDriverAnnotationTiers = observable.map<boolean>();
-
     @observable showUnalteredColumns:boolean = true;
     @observable showWhitespaceBetweenColumns:boolean = true;
     @observable showClinicalTrackLegends:boolean = true;
@@ -124,8 +115,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     private controlsHandlers:IOncoprintControlsHandlers & IObservableObject;
     private controlsState:IOncoprintControlsState & IObservableObject;
 
-    @observable knownMutationSettingsAutorunCount = 0;
-
     private oncoprint:OncoprintJS<any>;
 
     private putativeDriverSettingsReaction:IReactionDisposer;
@@ -134,7 +123,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     constructor(props:IResultsViewOncoprintProps) {
         super(props);
 
-        this.initKnownMutationSettings(props);
         this.initFromUrlParams(props.routing.location.query);
         
         const self = this;
@@ -144,6 +132,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.onMinimapClose = this.onMinimapClose.bind(this);
         this.oncoprintRef = this.oncoprintRef.bind(this);
         this.toggleColumnMode = this.toggleColumnMode.bind(this);
+        this.isPutativeDriver = this.isPutativeDriver.bind(this);
 
         onMobxPromise(this.props.store.heatmapMolecularProfiles, (profiles:MolecularProfile[])=>{
             // select first initially
@@ -155,37 +144,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.heatmapGeneInputValueUpdater = onMobxPromise(this.props.store.genes, (genes:Gene[])=>{
             this.heatmapGeneInputValue = genes.map(g=>g.hugoGeneSymbol).join(" ");
         }, Number.POSITIVE_INFINITY);
-
-        this.putativeDriverSettingsReaction = reaction(
-            // putative driver settings reaction
-            ()=>[
-                this.annotateDriversOncoKb,
-                this.annotateDriversHotspots,
-                this.annotateDriversCBioPortal,
-                this.annotateDriversCOSMIC,
-                this.annotateDriversCBioPortalThreshold,
-                this.annotateDriversCOSMICThreshold,
-                this.hidePutativePassengers,
-                this.annotateCustomDriverBinary,
-                this.selectedCustomDriverAnnotationTiers
-            ],
-            ()=>{
-            const newSettings:KnownMutationSettings = {
-                recognize_oncokb_oncogenic: this.annotateDriversOncoKb,
-                recognize_hotspot: this.annotateDriversHotspots,
-                recognize_cbioportal_count: this.annotateDriversCBioPortal,
-                recognize_cosmic_count: this.annotateDriversCOSMIC,
-                cbioportal_count_thresh: parseInt(this.annotateDriversCBioPortalThreshold, 10),
-                cosmic_count_thresh: parseInt(this.annotateDriversCOSMICThreshold, 10),
-                ignore_unknown: this.hidePutativePassengers,
-                recognize_driver_filter: this.annotateCustomDriverBinary,
-                recognize_driver_tiers: this.selectedCustomDriverAnnotationTiers.toJS()
-            };
-            if (this.knownMutationSettingsAutorunCount) {
-                this.props.querySession.setKnownMutationSettings(newSettings);
-            }
-            this.knownMutationSettingsAutorunCount += 1;
-        });
 
         this.urlParamsReaction = reaction(
             ()=>[
@@ -212,64 +170,64 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
             onSelectDistinguishDrivers:action((s:boolean)=>{
                 this.distinguishDrivers = s;
                 if (!this.distinguishDrivers) {
-                    this.annotateDriversOncoKb = false;
-                    this.annotateDriversHotspots = false;
-                    this.annotateDriversCBioPortal = false;
-                    this.annotateDriversCOSMIC = false;
-                    this.hidePutativePassengers = false;
+                    this.props.store.mutationAnnotationSettings.oncoKb = false;
+                    this.props.store.mutationAnnotationSettings.hotspots = false;
+                    this.props.store.mutationAnnotationSettings.cbioportalCount = false;
+                    this.props.store.mutationAnnotationSettings.cosmicCount = false;
+                    this.props.store.mutationAnnotationSettings.ignoreUnknown = false;
                 } else {
-                    this.annotateDriversOncoKb = true;
-                    this.annotateDriversHotspots = true;
-                    this.annotateDriversCBioPortal = true;
-                    this.annotateDriversCOSMIC = true;
+                    this.props.store.mutationAnnotationSettings.oncoKb = true;
+                    this.props.store.mutationAnnotationSettings.hotspots = true;
+                    this.props.store.mutationAnnotationSettings.cbioportalCount = true;
+                    this.props.store.mutationAnnotationSettings.cosmicCount = true;
                 }
             }),
             onSelectAnnotateOncoKb:action((s:boolean)=>{
-                this.annotateDriversOncoKb = s;
-                if (this.annotateDriversOncoKb) {
+                this.props.store.mutationAnnotationSettings.oncoKb = s;
+                if (this.props.store.mutationAnnotationSettings.oncoKb) {
                     this.distinguishDrivers = true;
                 }
             }),
             onSelectAnnotateHotspots:action((s:boolean)=>{
-                this.annotateDriversHotspots = s;
-                if (this.annotateDriversHotspots) {
+                this.props.store.mutationAnnotationSettings.hotspots = s;
+                if (this.props.store.mutationAnnotationSettings.hotspots) {
                     this.distinguishDrivers = true;
                 }
             }),
             onSelectAnnotateCBioPortal:action((s:boolean)=>{
-                this.annotateDriversCBioPortal = s;
-                if (this.annotateDriversCBioPortal) {
+                this.props.store.mutationAnnotationSettings.cbioportalCount = s;
+                if (this.props.store.mutationAnnotationSettings.cbioportalCount) {
                     this.distinguishDrivers = true;
                 }
             }),
             onSelectAnnotateCOSMIC:action((s:boolean)=>{
-                this.annotateDriversCOSMIC = s;
-                if (this.annotateDriversCOSMIC) {
+                this.props.store.mutationAnnotationSettings.cosmicCount = s;
+                if (this.props.store.mutationAnnotationSettings.cosmicCount) {
                     this.distinguishDrivers = true;
                 }
             }),
             onChangeAnnotateCBioPortalInputValue:action((s:string)=>{
-                this.annotateDriversCBioPortalThreshold = s;
+                this.props.store.mutationAnnotationSettings.cbioportalCountThreshold = parseInt(s, 10);
                 this.controlsHandlers.onSelectAnnotateCBioPortal && this.controlsHandlers.onSelectAnnotateCBioPortal(true);
             }),
             onChangeAnnotateCOSMICInputValue:action((s:string)=>{
-                this.annotateDriversCOSMICThreshold = s;
+                this.props.store.mutationAnnotationSettings.cosmicCountThreshold = parseInt(s, 10);
                 this.controlsHandlers.onSelectAnnotateCOSMIC && this.controlsHandlers.onSelectAnnotateCOSMIC(true);
             }),
             onSelectCustomDriverAnnotationBinary:action((s:boolean)=>{
-                this.annotateCustomDriverBinary = s;
-                if (this.annotateCustomDriverBinary) {
+                this.props.store.mutationAnnotationSettings.driverFilter = s;
+                if (this.props.store.mutationAnnotationSettings.driverFilter) {
                     this.distinguishDrivers = true;
                 }
             }),
             onSelectCustomDriverAnnotationTier:action((value:string, checked:boolean)=>{
-                this.selectedCustomDriverAnnotationTiers.set(value, checked);
+                this.props.store.mutationAnnotationSettings.driverTiers.set(value, checked);
                 if (checked) {
                     this.distinguishDrivers = true;
                 }
             }),
             onSelectHidePutativePassengers:(s:boolean)=>{
-                this.hidePutativePassengers = s;
+                this.props.store.mutationAnnotationSettings.ignoreUnknown = s;
             },
             onSelectSortByMutationType:(s:boolean)=>{this.sortByMutationType = s;},
             onClickSortAlphabetical:()=>{
@@ -391,25 +349,25 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                 return self.distinguishDrivers;
             },
             get annotateDriversOncoKb() {
-                return self.annotateDriversOncoKb;
+                return self.props.store.mutationAnnotationSettings.oncoKb;
             },
             get annotateDriversHotspots() {
-                return self.annotateDriversHotspots;
+                return self.props.store.mutationAnnotationSettings.hotspots;
             },
             get annotateDriversCBioPortal() {
-                return self.annotateDriversCBioPortal;
+                return self.props.store.mutationAnnotationSettings.cbioportalCount;
             },
             get annotateDriversCOSMIC() {
-                return self.annotateDriversCOSMIC;
+                return self.props.store.mutationAnnotationSettings.cosmicCount;
             },
             get hidePutativePassengers() {
-                return self.hidePutativePassengers;
+                return self.props.store.mutationAnnotationSettings.ignoreUnknown;
             },
             get annotateCBioPortalInputValue() {
-                return self.annotateDriversCBioPortalThreshold;
+                return self.props.store.mutationAnnotationSettings.cbioportalCountThreshold + "";
             },
             get annotateCOSMICInputValue() {
-                return self.annotateDriversCOSMICThreshold;
+                return self.props.store.mutationAnnotationSettings.cosmicCountThreshold + "";
             },
             get clinicalAttributesPromise() {
                 return self.unselectedClinicalAttributes;
@@ -462,10 +420,10 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                 }
             },
             get annotateCustomDriverBinary() {
-                return self.annotateCustomDriverBinary;
+                return self.props.store.mutationAnnotationSettings.driverFilter;
             },
             get selectedCustomDriverAnnotationTiers() {
-                return self.selectedCustomDriverAnnotationTiers;
+                return self.props.store.mutationAnnotationSettings.driverTiers;
             },
             get columnMode() {
                 return self.columnMode;
@@ -539,7 +497,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.oncoprint = oncoprint;
         this.oncoprint.onHorzZoom(z=>(this.horzZoom = z));
         this.horzZoom = this.oncoprint.getHorzZoom();
-        onMobxPromise([this.alteredSampleUIDs, this.alteredPatientUIDs],
+        onMobxPromise([this.props.store.alteredSampleKeys, this.props.store.alteredPatientKeys],
             (sampleUIDs:string[], patientUIDs:string[])=>{
                 this.oncoprint.setHorzZoomToFit(
                     this.columnMode === "sample" ? sampleUIDs: patientUIDs
@@ -548,26 +506,11 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     }
 
-    private initKnownMutationSettings(props:IResultsViewOncoprintProps) {
-        const knownMutationSettings = props.querySession.getKnownMutationSettings();
-        this.annotateDriversOncoKb = knownMutationSettings.recognize_oncokb_oncogenic;
-        this.annotateDriversHotspots = knownMutationSettings.recognize_hotspot;
-        this.annotateDriversCBioPortal = knownMutationSettings.recognize_cbioportal_count;
-        this.annotateDriversCOSMIC = knownMutationSettings.recognize_cosmic_count;
-        this.annotateDriversCBioPortalThreshold = knownMutationSettings.cbioportal_count_thresh + "";
-        this.annotateDriversCOSMICThreshold = knownMutationSettings.cosmic_count_thresh + "";
-        this.hidePutativePassengers = knownMutationSettings.ignore_unknown;
-        this.annotateCustomDriverBinary = knownMutationSettings.recognize_driver_filter;
-        for (const tier of Object.keys(knownMutationSettings.recognize_driver_tiers)) {
-            this.selectedCustomDriverAnnotationTiers.set(tier, knownMutationSettings.recognize_driver_tiers[tier]);
-        }
-    }
-
     @computed get horzZoomToFitIds() {
-        if (this.columnMode === "sample" && this.alteredSampleUIDs.isComplete) {
-            return this.alteredSampleUIDs.result;
-        } else if (this.columnMode === "patient" && this.alteredPatientUIDs.isComplete) {
-            return this.alteredPatientUIDs.result;
+        if (this.columnMode === "sample" && this.props.store.alteredSampleKeys.isComplete) {
+            return this.props.store.alteredSampleKeys.result;
+        } else if (this.columnMode === "patient" && this.props.store.alteredPatientKeys.isComplete) {
+            return this.props.store.alteredPatientKeys.result;
         } else {
             return [];
         }
@@ -579,13 +522,16 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         }
     }
 
-    readonly unalteredUids = remoteData({
-        await: ()=>[this.geneticTracks],
-        invoke:()=>{
+    readonly unalteredKeys = remoteData({
+        await: ()=>[
+            this.props.store.unalteredSampleKeys,
+            this.props.store.unalteredPatientKeys,
+        ],
+        invoke:async()=>{
             if (this.columnMode === "sample") {
-               return this.props.querySession.getUnalteredSampleUIDs();
+               return this.props.store.unalteredSampleKeys.result!;
             } else {
-                return this.props.querySession.getUnalteredPatientUIDs();
+               return this.props.store.unalteredPatientKeys.result!;
             }
         },
         default: []
@@ -638,70 +584,42 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         if (this.sortMode.type === "alphabetical") {
             return this.columnMode === "sample" ? this.alphabeticalSampleOrder : this.alphabeticalPatientOrder;
         } else if (this.sortMode.type === "caseList") {
-            return this.columnMode === "sample" ? this.sampleUIDs.result : this.patientUIDs.result;
+            if (this.columnMode === "sample" && this.props.store.samples.isComplete) {
+                return this.props.store.samples.result.map(x=>x.uniqueSampleKey);
+            } else if (this.columnMode === "patient" && this.props.store.patients.isComplete) {
+                return this.props.store.patients.result.map(x=>x.uniquePatientKey);
+            }
         } else {
             return undefined;
         }
     }
 
-    readonly patientUIDs = remoteData({
-        invoke:()=>Promise.resolve(this.props.querySession.getPatientUIDs()),
-    });
-    readonly sampleUIDs = remoteData({
-        invoke:()=>Promise.resolve(this.props.querySession.getSampleUIDs()),
-    });
-    readonly uidToCaseMap = remoteData({
-        invoke: ()=>Promise.resolve(this.props.querySession.getUIDToCaseMap()),
-    });
-    readonly sequencedSamples = remoteData({
-        invoke: ()=>Promise.resolve(this.props.querySession.getSequencedSamples()),
-    });
-    readonly sequencedPatients = remoteData({
-        invoke: ()=>Promise.resolve(this.props.querySession.getSequencedPatients()),
-    });
-    readonly alteredPatientUIDs = remoteData({
-        invoke: ()=>Promise.resolve(this.props.querySession.getAlteredPatientUIDs()),
-    });
-    readonly alteredSampleUIDs = remoteData({
-        invoke: ()=>Promise.resolve(this.props.querySession.getAlteredSampleUIDs()),
-    });
     @computed get alphabeticalSampleOrder() {
-        if (this.sampleUIDs.result && this.uidToCaseMap.result) {
-            return _.sortBy(this.sampleUIDs.result, uid=>(this.uidToCaseMap.result![uid] || ""));
+        if (this.props.store.samples.isComplete) {
+            return _.sortBy(this.props.store.samples.result!, sample=>sample.sampleId).map(sample=>sample.uniqueSampleKey);
         } else {
             return undefined;
         }
     };
 
     @computed get alphabeticalPatientOrder() {
-        if (this.patientUIDs.result && this.uidToCaseMap.result) {
-            return _.sortBy(this.patientUIDs.result, uid=>(this.uidToCaseMap.result![uid] || ""))
+        if (this.props.store.patients.isComplete) {
+            return _.sortBy(this.props.store.patients.result!, patient=>patient.patientId).map(patient=>patient.uniquePatientKey);
         } else {
             return undefined;
         }
     };
 
-    readonly geneticTracks = remoteData<GeneticTrackSpec[]>({
-        invoke: async()=>{
-            this.knownMutationSettingsAutorunCount; // register so that we recompute when known mutation settings change
-            const oncoprintData:OncoprintTrackData[] =
-                await Promise.resolve<OncoprintTrackData[]>((
-                    this.columnMode === "sample" ?
-                    this.props.querySession.getOncoprintSampleGenomicEventData(this.distinguishDrivers) :
-                    this.props.querySession.getOncoprintPatientGenomicEventData(this.distinguishDrivers)
-                ));
-            return oncoprintData.map((track_data:OncoprintTrackData, index:number)=>{
-                return {
-                    key: index+"",
-                    label: track_data.gene,
-                    oql: track_data.oql_line,
-                    info: getPercentAltered(track_data),
-                    data: track_data.oncoprint_data
-                };
-            });
-        },
-        default: [],
-    });
+    public isPutativeDriver(mutation:Mutation) {
+        // TODO
+        return true;
+    }
+
+    readonly sampleGeneticTracks = makeGeneticTracksMobxPromise(this, true);
+    readonly patientGeneticTracks = makeGeneticTracksMobxPromise(this, false);
+    @computed get geneticTracks() {
+        return (this.columnMode === "sample" ? this.sampleGeneticTracks : this.patientGeneticTracks);
+    }
 
     readonly clinicalTracks = remoteData<ClinicalTrackSpec<any>[]>({
         invoke: async()=>{
@@ -808,9 +726,9 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     });
 
     @computed get headerColumnModeButton() {
-        if (!this.sampleUIDs.isComplete ||
-            !this.patientUIDs.isComplete ||
-            (this.sampleUIDs.result.length === this.patientUIDs.result.length)) {
+        if (!this.props.store.samples.isComplete ||
+            !this.props.store.patients.isComplete ||
+            (this.props.store.samples.result.length === this.props.store.patients.result.length)) {
             return null;
         }
         let text, tooltip;
@@ -844,10 +762,10 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }
 
     @computed get caseSetInfo() {
-        if (this.caseSetName.isComplete && this.patientUIDs.isComplete && this.sampleUIDs.isComplete) {
+        if (this.caseSetName.isComplete && this.props.store.patients.isComplete && this.props.store.samples.isComplete) {
             return (
                 <div>
-                    <span>Case Set: {this.caseSetName.result} ({this.patientUIDs.result.length} patients / {this.sampleUIDs.result.length} samples)</span>
+                    <span>Case Set: {this.caseSetName.result} ({this.props.store.patients.result.length} patients / {this.props.store.samples.result.length} samples)</span>
                     {this.headerColumnModeButton}
                 </div>
             );
@@ -857,9 +775,9 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }
 
     @computed get alterationInfo() {
-        const alteredIdsPromise = (this.columnMode === "sample" ? this.alteredSampleUIDs : this.alteredPatientUIDs);
-        const sequencedIdsPromise = (this.columnMode === "sample" ? this.sequencedSamples : this.sequencedPatients);
-        const allIdsPromise = (this.columnMode === "sample" ? this.sampleUIDs : this.patientUIDs);
+        const alteredIdsPromise = (this.columnMode === "sample" ? this.props.store.alteredSampleKeys : this.props.store.alteredPatientKeys);
+        const sequencedIdsPromise = (this.columnMode === "sample" ? this.props.store.sequencedSampleKeys: this.props.store.sequencedPatientKeys);
+        const allIdsPromise = (this.columnMode === "sample" ? this.props.store.samples : this.props.store.patients);
         if (allIdsPromise.isComplete && alteredIdsPromise.isComplete && sequencedIdsPromise.isComplete) {
             return (
                 <span style={{marginTop:"15px", marginBottom:"15px", display: "block"}}>
@@ -893,7 +811,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                     divId={this.props.divId}
                     width={1050}
 
-                    hiddenIds={!this.showUnalteredColumns ? this.unalteredUids.result : []}
+                    hiddenIds={!this.showUnalteredColumns ? this.unalteredKeys.result : []}
 
                     horzZoomToFitIds={this.horzZoomToFitIds}
                     distinguishMutationType={this.distinguishMutationType}

@@ -1,8 +1,12 @@
 import {getPatientViewUrl, getSampleViewUrl} from "../../api/urls";
 import $ from "jquery";
-import {GenePanel, MolecularProfile, Mutation} from "../../api/generated/CBioPortalAPI";
+import {
+    GeneMolecularData, GenePanel, GenePanelData, MolecularProfile,
+    Mutation
+} from "../../api/generated/CBioPortalAPI";
 import client from "shared/api/cbioportalClientInstance";
-import {ClinicalTrackSpec} from "./Oncoprint";
+import {ClinicalTrackSpec, GeneticTrackDatum} from "./Oncoprint";
+import {AlterationData} from "../../../pages/resultsView/ResultsViewPageStore";
 
 function sampleViewAnchorTag(study_id:string, sample_id:string) {
     return `<a href="${getSampleViewUrl(study_id, sample_id)}" target="_blank">${sample_id}</a>`;
@@ -69,7 +73,17 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
         return ret;
     };
 };
-export function makeGeneticTrackTooltip(showBinaryCustomDriverAnnotation?:boolean, showTiersCustomDriverAnnotation?:boolean, link_id?:boolean) {
+export function makeGeneticTrackTooltip(
+    getMolecularProfileIdToMolecularProfile:()=>{[molecularProfileId:string]:MolecularProfile},
+    getOncoprintMutationType:(d:Mutation)=>string,
+    annotation?:{
+        hotspots?:(d:Mutation)=>boolean,
+        oncoKb?:(d:AlterationData)=>"likely oncogenic"|"predicted oncogenic"|"oncogenic"|false,
+    },
+    showBinaryCustomDriverAnnotation?:boolean,
+    showTiersCustomDriverAnnotation?:boolean,
+    link_id?:boolean
+) {
     // TODO: all the data here is old API data
     function listOfMutationOrFusionDataToHTML(data:any[]) {
         return data.map(function(d:any) {
@@ -102,43 +116,60 @@ export function makeGeneticTrackTooltip(showBinaryCustomDriverAnnotation?:boolea
             return ret;
         });
     };
+
     const oncogenic = ["likely oncogenic", "predicted oncogenic", "oncogenic"];
-    return function (d:any) {
+    const disp_cna:{[integerCN:string]:string} = {'-2': 'HOMODELETED', '-1': 'HETLOSS', '1': 'GAIN', '2': 'AMPLIFIED'};
+    return function (d:GeneticTrackDatum) {
+        const molecularProfileIdToMolecularProfile = getMolecularProfileIdToMolecularProfile();
         const ret = $('<div>');
         let mutations:any[] = [];
         let cna:any[] = [];
-        const mrna:any[] = [];
-        const prot:any[] = [];
+        const mrna:("UPREGULATED"|"DOWNREGULATED")[] = [];
+        const prot:("UPREGULATED"|"DOWNREGULATED")[] = [];
         let fusions:any[] = [];
         for (let i = 0; i < d.data.length; i++) {
             const datum = d.data[i];
-            if (datum.genetic_alteration_type === "MUTATION_EXTENDED") {
-                const tooltip_datum:any = {'amino_acid_change': datum.amino_acid_change, 'driver_filter': datum.driver_filter,
-                    'driver_filter_annotation': datum.driver_filter_annotation, 'driver_tiers_filter': datum.driver_tiers_filter,
-                    'driver_tiers_filter_annotation': datum.driver_tiers_filter_annotation};
-                if (datum.cancer_hotspots_hotspot) {
-                    tooltip_datum.cancer_hotspots_hotspot = true;
-                }
-                if (typeof datum.oncokb_oncogenic !== "undefined" && oncogenic.indexOf(datum.oncokb_oncogenic) > -1) {
-                    tooltip_datum.oncokb_oncogenic = datum.oncokb_oncogenic;
-                }
-                (datum.oncoprint_mutation_type === "fusion" ? fusions : mutations).push(tooltip_datum);
-            } else if (datum.genetic_alteration_type === "COPY_NUMBER_ALTERATION") {
-                const disp_cna:{[integerCN:string]:string} = {'-2': 'HOMODELETED', '-1': 'HETLOSS', '1': 'GAIN', '2': 'AMPLIFIED'};
-                if (disp_cna.hasOwnProperty(datum.profile_data)) {
+            const molecularAlterationType = molecularProfileIdToMolecularProfile[datum.molecularProfileId].molecularAlterationType;
+            switch (molecularAlterationType) {
+                case "MUTATION_EXTENDED":
                     const tooltip_datum:any = {
-                        cna: disp_cna[datum.profile_data]
+                        'amino_acid_change': (datum as Mutation).aminoAcidChange,
+                        'driver_filter': (datum as Mutation).driverFilter,
+                        'driver_filter_annotation': (datum as Mutation).driverFilterAnnotation,
+                        'driver_tiers_filter': (datum as Mutation).driverTiersFilter,
+                        'driver_tiers_filter_annotation': (datum as Mutation).driverTiersFilterAnnotation
                     };
-                    if (typeof datum.oncokb_oncogenic !== "undefined" && oncogenic.indexOf(datum.oncokb_oncogenic) > -1) {
-                        tooltip_datum.oncokb_oncogenic = datum.oncokb_oncogenic;
+                    if (annotation && annotation.hotspots && annotation.hotspots(datum as Mutation)) {
+                        tooltip_datum.cancer_hotspots_hotspot = true;
                     }
-                    cna.push(tooltip_datum);
-                }
-            } else if (datum.genetic_alteration_type === "MRNA_EXPRESSION" || datum.genetic_alteration_type === "PROTEIN_LEVEL") {
-                if (datum.oql_regulation_direction) {
-                    (datum.genetic_alteration_type === "MRNA_EXPRESSION" ? mrna : prot)
-                        .push(datum.oql_regulation_direction === 1 ? "UPREGULATED" : "DOWNREGULATED");
-                }
+                    const oncokb_oncogenic = annotation && annotation.oncoKb && annotation.oncoKb(datum);
+                    if (oncokb_oncogenic) {
+                        tooltip_datum.oncokb_oncogenic = oncokb_oncogenic;
+                    }
+                    (getOncoprintMutationType(datum as Mutation) === "fusion" ? fusions : mutations).push(tooltip_datum);
+                    break;
+                case "COPY_NUMBER_ALTERATION":
+                    if (disp_cna.hasOwnProperty((datum as GeneMolecularData).value)) {
+                        const tooltip_datum:any = {
+                            cna: disp_cna[(datum as GeneMolecularData).value]
+                        };
+                        const oncokb_oncogenic = annotation && annotation.oncoKb && annotation.oncoKb(datum);
+                        if (oncokb_oncogenic) {
+                            tooltip_datum.oncokb_oncogenic = oncokb_oncogenic;
+                        }
+                        cna.push(tooltip_datum);
+                    }
+                    break;
+                case "MRNA_EXPRESSION":
+                case "PROTEIN_LEVEL":
+                    let direction = (datum as any).oql_regulation_direction;
+                    let array = (molecularAlterationType === "MRNA_EXPRESSION" ? mrna : prot);
+                    if (direction === 1) {
+                        array.push("UPREGULATED");
+                    } else {
+                        array.push("DOWNREGULATED");
+                    }
+                    break;
             }
         }
         if (fusions.length > 0) {
@@ -182,12 +213,18 @@ export function makeGeneticTrackTooltip(showBinaryCustomDriverAnnotation?:boolea
         }
         if (typeof d.coverage !== "undefined") {
             ret.append("Coverage: ");
-            var coverage_elts = d.coverage.filter(function (x:string) {
-                return x !== "1"; //code for whole-exome seq
-            }).map(function (id:string) {
-                return makeGenePanelPopupLink(id);
+            let isWXS = false;
+            let coverage_elts:any[] = d.coverage.filter((x:GenePanelData)=>{
+                if (x.genePanelId === "1") { //code for whole-exome seq
+                    isWXS = true;
+                    return false;
+                } else {
+                    return true;
+                }
+            }).map((x:GenePanelData)=>{
+                return makeGenePanelPopupLink(x.genePanelId);
             });
-            if (d.coverage.indexOf("1") > -1) {
+            if (isWXS) {
                 coverage_elts.push("Whole-Exome Sequencing");
             }
             for (var i = 0; i < coverage_elts.length; i++) {
@@ -202,7 +239,15 @@ export function makeGeneticTrackTooltip(showBinaryCustomDriverAnnotation?:boolea
             ret.append('Not sequenced');
             ret.append('<br>');
         }
-        ret.append((d.sample ? (link_id ? sampleViewAnchorTag(d.study_id, d.sample) : d.sample) : (link_id ? patientViewAnchorTag(d.study_id, d.patient) : d.patient)));
+        let caseIdElt;
+        if (d.sample) {
+            caseIdElt = link_id ? sampleViewAnchorTag(d.study_id, d.sample) : d.sample;
+        } else if (d.patient) {
+            caseIdElt = link_id ? sampleViewAnchorTag(d.study_id, d.patient) : d.patient;
+        } else {
+            caseIdElt = "";
+        }
+        ret.append(caseIdElt);
         return ret;
     };
 }

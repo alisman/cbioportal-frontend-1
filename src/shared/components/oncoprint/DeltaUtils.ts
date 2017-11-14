@@ -8,12 +8,14 @@ import _ from "lodash";
 import {getClinicalTrackRuleSetParams, getGeneticTrackRuleSetParams, getHeatmapTrackRuleSetParams} from "./OncoprintUtils";
 import {getClinicalTrackSortComparator, getGeneticTrackSortComparator, heatmapTrackSortComparator} from "./SortUtils";
 import {makeClinicalTrackTooltip, makeGeneticTrackTooltip, makeHeatmapTrackTooltip} from "./TooltipUtils";
+import {MolecularProfile} from "../../api/generated/CBioPortalAPI";
 
 export function transition(
     nextProps:IOncoprintProps,
     prevProps:Partial<IOncoprintProps>,
     oncoprint:OncoprintJS<any>,
-    getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId}
+    getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId},
+    getMolecularProfileIdToMolecularProfile:()=>{[molecularProfileId:string]:MolecularProfile}
 ) {
     const notKeepingSorted = shouldNotKeepSortedForTransition(nextProps, prevProps);
     const suppressingRendering = shouldSuppressRenderingForTransition(nextProps, prevProps);
@@ -28,7 +30,7 @@ export function transition(
     transitionWhitespaceBetweenColumns(nextProps, prevProps, oncoprint);
     transitionShowMinimap(nextProps, prevProps, oncoprint);
     transitionOnMinimapCloseCallback(nextProps, prevProps, oncoprint);
-    transitionTracks(nextProps, prevProps, oncoprint, getTrackSpecKeyToTrackId);
+    transitionTracks(nextProps, prevProps, oncoprint, getTrackSpecKeyToTrackId, getMolecularProfileIdToMolecularProfile);
     transitionHiddenIds(nextProps, prevProps, oncoprint);
     transitionHorzZoomToFit(nextProps, prevProps, oncoprint);
     transitionShowClinicalTrackLegends(nextProps, prevProps, oncoprint, getTrackSpecKeyToTrackId);
@@ -267,7 +269,8 @@ function transitionTracks(
     nextProps:IOncoprintProps,
     prevProps:Partial<IOncoprintProps>,
     oncoprint:OncoprintJS<any>,
-    getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId}
+    getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId},
+    getMolecularProfileIdToMolecularProfile:()=>{[molecularProfileId:string]:MolecularProfile}
 ) {
     // Initialize tracks for rule set sharing
     const trackIdForRuleSetSharing = {
@@ -288,14 +291,14 @@ function transitionTracks(
     // Transition genetic tracks
     const prevGeneticTracks = _.keyBy(prevProps.geneticTracks || [], track=>track.key);
     for (const track of nextProps.geneticTracks) {
-        transitionGeneticTrack(track, prevGeneticTracks[track.key], getTrackSpecKeyToTrackId,
+        transitionGeneticTrack(track, prevGeneticTracks[track.key], getTrackSpecKeyToTrackId, getMolecularProfileIdToMolecularProfile,
                                 oncoprint, nextProps, prevProps, trackIdForRuleSetSharing);
         delete prevGeneticTracks[track.key];
     }
     for (const track of (prevProps.geneticTracks || [])) {
         if (prevGeneticTracks.hasOwnProperty(track.key)) {
             // if its still there, then this track no longer exists, we need to remove it
-            transitionGeneticTrack(undefined, prevGeneticTracks[track.key], getTrackSpecKeyToTrackId,
+            transitionGeneticTrack(undefined, prevGeneticTracks[track.key], getTrackSpecKeyToTrackId, getMolecularProfileIdToMolecularProfile,
                                     oncoprint, nextProps, prevProps, trackIdForRuleSetSharing);
         }
     }
@@ -364,6 +367,7 @@ function transitionGeneticTrack(
     nextSpec:GeneticTrackSpec|undefined,
     prevSpec:GeneticTrackSpec|undefined,
     getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId},
+    getMolecularProfileIdToMolecularProfile:()=>{[molecularProfileId:string]:MolecularProfile},
     oncoprint:OncoprintJS<any>,
     nextProps:IOncoprintProps,
     prevProps:Partial<IOncoprintProps>,
@@ -383,7 +387,7 @@ function transitionGeneticTrack(
             description: nextSpec.oql,
             data_id_key: "uid",
             data: nextSpec.data,
-            tooltipFn: makeGeneticTrackTooltip(nextProps.showBinaryCustomDriverAnnotation, nextProps.showTiersCustomDriverAnnotation, true),
+            tooltipFn: makeGeneticTrackTooltip(getMolecularProfileIdToMolecularProfile,nextProps.showBinaryCustomDriverAnnotation, nextProps.showTiersCustomDriverAnnotation, true),
             track_info: nextSpec.info
         };
         const newTrackId = oncoprint.addTracks([geneticTrackParams])[0];

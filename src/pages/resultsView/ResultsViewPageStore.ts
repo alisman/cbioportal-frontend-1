@@ -68,6 +68,13 @@ export type CaseAggregatedData<T> = {
     patients: {[uniquePatientKey:string]:T[]};
 };
 
+export type GenePanelInformation = {
+    samples:
+        {[uniqueSampleKey:string]:{[hugoGeneSymbol:string]:GenePanelData[]}};
+    patients:
+        {[uniquePatientKey:string]:{[hugoGeneSymbol:string]:GenePanelData[]}};
+};
+
 export function buildDefaultOQLProfile(profilesTypes: string[], zScoreThreshold: number, rppaScoreThreshold: number) {
 
     var default_oql_uniq: any = {};
@@ -265,10 +272,10 @@ export class ResultsViewPageStore {
         cbioportalCountThreshold: 10,
         cosmicCount: false,
         cosmicCountThreshold: 10,
-        hotspot:true,
+        hotspots:true,
         oncoKb:true,
         driverFilter: false, // todo fetch from app config
-        driverTiers: {} // todo fetch from app config
+        driverTiers: observable.map<boolean>() // todo fetch from app config
     };
 
     readonly selectedMolecularProfiles = remoteData<MolecularProfile[]>(() => {
@@ -390,7 +397,7 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly genePanelInformation = remoteData<{[molecularProfileId:string]:CaseAggregatedData<GenePanelData>}>({
+    readonly genePanelInformation = remoteData<GenePanelInformation>({
         await:()=>[
             this.studyToMutationMolecularProfile,
             this.studyToDataQueryFilter,
@@ -400,7 +407,7 @@ export class ResultsViewPageStore {
         ],
         invoke:async()=>{
             const studies = this.studyIds;
-            const results:GenePanelData[][] = await Promise.all(studies.map(studyId=>{
+            const results:GenePanelData[] = _.flatten(await Promise.all(studies.map(studyId=>{
                 const mutationMolecularProfile = this.studyToMutationMolecularProfile.result![studyId];
                 const dataQueryFilter = this.studyToDataQueryFilter.result![studyId];
                 if (mutationMolecularProfile && dataQueryFilter) {
@@ -415,18 +422,28 @@ export class ResultsViewPageStore {
                 } else {
                     return Promise.resolve([]);
                 }
-            }));
-            return _.reduce(studies, (map:{[molecularProfileId:string]:CaseAggregatedData<GenePanelData>}, studyId:string, index:number)=>{
-                const mutationMolecularProfileId = this.studyToMutationMolecularProfile.result![studyId].molecularProfileId;
-                const data = results[index];
-                map[mutationMolecularProfileId] = {
-                    samples:
-                        groupBy(data, datum=>datum.uniqueSampleKey, this.samples.result!.map(sample=>sample.uniqueSampleKey)),
-                    patients:
-                        groupBy(data, datum=>datum.uniquePatientKey, this.patients.result!.map(sample=>sample.uniquePatientKey))
-                };
-                return map;
-            }, {});
+            })));
+            const entrezToGene = _.keyBy(this.genes.result, gene=>gene.entrezGeneId);
+            const samples:GenePanelInformation["samples"] = {};
+            const patients:GenePanelInformation["patients"] = {};
+            for (const gpData of results) {
+                const sampleToGeneInfo = samples[gpData.uniqueSampleKey] || {};
+                const patientToGeneInfo = patients[gpData.uniquePatientKey] || {};
+                for (const entrez of gpData.entrezGeneIds) {
+                    const hugo = entrezToGene[entrez].hugoGeneSymbol;
+                    sampleToGeneInfo[hugo] = sampleToGeneInfo[hugo] || [];
+                    sampleToGeneInfo[hugo].push(gpData);
+
+                    patientToGeneInfo[hugo] = patientToGeneInfo[hugo] || [];
+                    patientToGeneInfo[hugo].push(gpData);
+                }
+                samples[gpData.uniqueSampleKey] = sampleToGeneInfo;
+                patients[gpData.uniquePatientKey] = patientToGeneInfo;
+            }
+            return {
+                samples,
+                patients
+            };
         }
     });
 
@@ -435,14 +452,8 @@ export class ResultsViewPageStore {
             this.genePanelInformation
         ],
         invoke:()=>{
-          return Promise.resolve(_.uniq(_.flatten<string>(
-              Object.keys(this.genePanelInformation.result!).map(molecularProfileId=>{
-                  const samples = this.genePanelInformation.result![molecularProfileId].samples;
-                  const sequencedSamples:string[] = Object.keys(samples).filter(sampleKey=>!!samples[sampleKey].length);
-                  return sequencedSamples;
-              })
-            )
-          ));
+            const samples = this.genePanelInformation.result!.samples;
+            return Promise.resolve(Object.keys(samples).filter(sampleKey=>!!Object.keys(samples[sampleKey]).length));
         }
     });
 
@@ -451,14 +462,8 @@ export class ResultsViewPageStore {
             this.genePanelInformation
         ],
         invoke:()=>{
-            return Promise.resolve(_.uniq(_.flatten<string>(
-                Object.keys(this.genePanelInformation.result!).map(molecularProfileId=>{
-                    const patients = this.genePanelInformation.result![molecularProfileId].patients;
-                    const sequencedPatients:string[] = Object.keys(patients).filter(sampleKey=>!!patients[sampleKey].length);
-                    return sequencedPatients;
-                })
-                )
-            ));
+            const patients = this.genePanelInformation.result!.patients;
+            return Promise.resolve(Object.keys(patients).filter(patientKey=>!!Object.keys(patients[patientKey]).length));
         }
     });
     
@@ -1071,8 +1076,8 @@ export class ResultsViewPageStore {
             this.genes
         ],
         invoke: async () => {
-            const groupedByGene = _.groupBy(this.mutations.result, (mutation: Mutation) => mutation.gene.hugoGeneSymbol);
-            return _.reduce(this.genes.result, (memo, gene: Gene) => {
+            const groupedByGene = _.groupBy(this.mutations.result!, (mutation: Mutation) => mutation.gene.hugoGeneSymbol);
+            return _.reduce(this.genes.result!, (memo, gene: Gene) => {
                 // a gene may have no mutations
                 memo[gene.hugoGeneSymbol] = groupedByGene[gene.hugoGeneSymbol] || [];
                 return memo;

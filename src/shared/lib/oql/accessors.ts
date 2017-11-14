@@ -9,9 +9,12 @@ var cna_profile_data_to_string: any = {
     "2": "amp"
 };
 
+export type SimplifiedMutationType =
+    "missense" | "frameshift" | "nonsense" | "splice" |
+    "nonstart" | "nonstop" | "fusion" | "inframe" | "other";
 
-var getSimplifiedMutationType = function (type: string) {
-    var ret = null;
+export function getSimplifiedMutationType(type: string):SimplifiedMutationType|null {
+    let ret:SimplifiedMutationType|null = null;
     type = (typeof type === "string") ? type.toLowerCase() : "";
     switch (type) {
         case "missense_mutation":
