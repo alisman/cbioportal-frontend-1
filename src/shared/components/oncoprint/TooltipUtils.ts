@@ -6,7 +6,7 @@ import {
 } from "../../api/generated/CBioPortalAPI";
 import client from "shared/api/cbioportalClientInstance";
 import {ClinicalTrackSpec, GeneticTrackDatum} from "./Oncoprint";
-import {AlterationData} from "../../../pages/resultsView/ResultsViewPageStore";
+import {ExtendedAlteration} from "../../../pages/resultsView/ResultsViewPageStore";
 
 function sampleViewAnchorTag(study_id:string, sample_id:string) {
     return `<a href="${getSampleViewUrl(study_id, sample_id)}" target="_blank">${sample_id}</a>`;
@@ -74,12 +74,6 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
     };
 };
 export function makeGeneticTrackTooltip(
-    getMolecularProfileIdToMolecularProfile:()=>{[molecularProfileId:string]:MolecularProfile},
-    getOncoprintMutationType:(d:Mutation)=>string,
-    annotation?:{
-        hotspots?:(d:Mutation)=>boolean,
-        oncoKb?:(d:AlterationData)=>"likely oncogenic"|"predicted oncogenic"|"oncogenic"|false,
-    },
     showBinaryCustomDriverAnnotation?:boolean,
     showTiersCustomDriverAnnotation?:boolean,
     link_id?:boolean
@@ -120,7 +114,6 @@ export function makeGeneticTrackTooltip(
     const oncogenic = ["likely oncogenic", "predicted oncogenic", "oncogenic"];
     const disp_cna:{[integerCN:string]:string} = {'-2': 'HOMODELETED', '-1': 'HETLOSS', '1': 'GAIN', '2': 'AMPLIFIED'};
     return function (d:GeneticTrackDatum) {
-        const molecularProfileIdToMolecularProfile = getMolecularProfileIdToMolecularProfile();
         const ret = $('<div>');
         let mutations:any[] = [];
         let cna:any[] = [];
@@ -129,31 +122,31 @@ export function makeGeneticTrackTooltip(
         let fusions:any[] = [];
         for (let i = 0; i < d.data.length; i++) {
             const datum = d.data[i];
-            const molecularAlterationType = molecularProfileIdToMolecularProfile[datum.molecularProfileId].molecularAlterationType;
+            const molecularAlterationType = datum.molecularProfileAlterationType;
             switch (molecularAlterationType) {
                 case "MUTATION_EXTENDED":
                     const tooltip_datum:any = {
-                        'amino_acid_change': (datum as Mutation).aminoAcidChange,
+                        'amino_acid_change': (datum as Mutation).proteinChange,
                         'driver_filter': (datum as Mutation).driverFilter,
                         'driver_filter_annotation': (datum as Mutation).driverFilterAnnotation,
                         'driver_tiers_filter': (datum as Mutation).driverTiersFilter,
                         'driver_tiers_filter_annotation': (datum as Mutation).driverTiersFilterAnnotation
                     };
-                    if (annotation && annotation.hotspots && annotation.hotspots(datum as Mutation)) {
+                    if (datum.hotspotAnnotation) {
                         tooltip_datum.cancer_hotspots_hotspot = true;
                     }
-                    const oncokb_oncogenic = annotation && annotation.oncoKb && annotation.oncoKb(datum);
+                    const oncokb_oncogenic = datum.oncoKbAnnotation;
                     if (oncokb_oncogenic) {
                         tooltip_datum.oncokb_oncogenic = oncokb_oncogenic;
                     }
-                    (getOncoprintMutationType(datum as Mutation) === "fusion" ? fusions : mutations).push(tooltip_datum);
+                    (datum.alterationSubType === "fusion" ? fusions : mutations).push(tooltip_datum);
                     break;
                 case "COPY_NUMBER_ALTERATION":
                     if (disp_cna.hasOwnProperty((datum as GeneMolecularData).value)) {
                         const tooltip_datum:any = {
                             cna: disp_cna[(datum as GeneMolecularData).value]
                         };
-                        const oncokb_oncogenic = annotation && annotation.oncoKb && annotation.oncoKb(datum);
+                        const oncokb_oncogenic = datum.oncoKbAnnotation;
                         if (oncokb_oncogenic) {
                             tooltip_datum.oncokb_oncogenic = oncokb_oncogenic;
                         }
@@ -162,11 +155,11 @@ export function makeGeneticTrackTooltip(
                     break;
                 case "MRNA_EXPRESSION":
                 case "PROTEIN_LEVEL":
-                    let direction = (datum as any).oql_regulation_direction;
+                    let direction = datum.alterationSubType;
                     let array = (molecularAlterationType === "MRNA_EXPRESSION" ? mrna : prot);
-                    if (direction === 1) {
+                    if (direction === "up") {
                         array.push("UPREGULATED");
-                    } else {
+                    } else if (direction === "down") {
                         array.push("DOWNREGULATED");
                     }
                     break;

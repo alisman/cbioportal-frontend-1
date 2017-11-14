@@ -20,7 +20,7 @@ import OncoprintControls, {
     IOncoprintControlsState
 } from "shared/components/oncoprint/controls/OncoprintControls";
 import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
-import {ClinicalAttribute, Gene, MolecularProfile, Mutation} from "../../api/generated/CBioPortalAPI";
+import {ClinicalAttribute, Gene, MolecularProfile, Mutation, Sample} from "../../api/generated/CBioPortalAPI";
 import {percentAltered, getPercentAltered, makeGeneticTracksMobxPromise} from "./OncoprintUtils";
 import _ from "lodash";
 import onMobxPromise from "shared/lib/onMobxPromise";
@@ -283,11 +283,18 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                 } else if (type === "order") {
                     const capitalizedColumnMode = this.columnMode[0].toUpperCase() + this.columnMode.slice(1);
                     onMobxPromise(
-                        this.uidToCaseMap,
-                        map=>{
+                        [this.props.store.sampleKeyToSample,
+                        this.props.store.patientKeyToPatient],
+                        (sampleKeyToSample:{[sampleKey:string]:Sample}, patientKeyToPatient)=>{
                             let file = `${capitalizedColumnMode} order in the Oncoprint is:\n`;
-                            for (const uid of this.oncoprint.getIdOrder()) {
-                                file += `${map[uid]}\n`;
+                            const keyToCase = (this.columnMode === "sample" ? sampleKeyToSample : patientKeyToPatient);
+                            const caseIds = this.oncoprint.getIdOrder().map(
+                                this.columnMode === "sample" ?
+                                    (id=>(sampleKeyToSample[id].sampleId)) :
+                                    (id=>(patientKeyToPatient[id].patientId))
+                            );
+                            for (const caseId of caseIds) {
+                                file += `${caseId}\n`;
                             }
                             fileDownload(
                                 file,
@@ -297,14 +304,17 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                     )
                 } else if (type === "tabular") {
                     onMobxPromise(
-                        this.uidToCaseMap,
-                        uidToCaseMap=>{
+                        [this.props.store.sampleKeyToSample,
+                        this.props.store.patientKeyToPatient],
+                        (sampleKeyToSample:{[sampleKey:string]:Sample}, patientKeyToPatient)=>{
                             tabularDownload(
                                 this.geneticTracks.result,
                                 this.clinicalTracks.result,
                                 this.heatmapTracks.result,
                                 this.oncoprint.getIdOrder(),
-                                uidToCaseMap,
+                                (this.columnMode === "sample" ?
+                                    ((key:string)=>(sampleKeyToSample[key].sampleId)) :
+                                    ((key:string)=>(patientKeyToPatient[key].patientId))),
                                 this.columnMode,
                                 this.distinguishDrivers
                             )

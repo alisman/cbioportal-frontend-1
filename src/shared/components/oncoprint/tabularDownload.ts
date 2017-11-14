@@ -6,11 +6,11 @@ export default function tabularDownload(
     clinicalTracks:ClinicalTrackSpec<any>[],
     heatmapTracks:HeatmapTrackSpec[],
     uidOrder:string[],
-    uidToCaseMap:{[uid:string]:string},
+    getCaseId:(uid:string)=>string,
     columnMode:"sample"|"patient",
     distinguishDrivers:boolean
 ) {
-    const caseNames = uidOrder.map(uid=>uidToCaseMap[uid]);
+    const caseNames = uidOrder.map(getCaseId);
     const prefixName = (columnMode === "sample" ? "SAMPLE_DATA_" : "PATIENT_DATA_"); //Name depending on the type of case
 
     //Gather all the Oncoprint data

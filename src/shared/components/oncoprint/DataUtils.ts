@@ -1,5 +1,5 @@
 import {
-    AlterationData, CaseAggregatedData,
+    CaseAggregatedData, ExtendedAlteration,
     GenePanelInformation
 } from "../../../pages/resultsView/ResultsViewPageStore";
 import {
@@ -78,9 +78,8 @@ function selectDisplayValue(counts:{[value:string]:number}, priority:{[value:str
 function fillGeneticTrackDatum(
     newDatum:Partial<GeneticTrackDatum>,
     hugoGeneSymbol:string,
-    molecularProfileIdToMolecularProfile:{[molecularProfileId:string]:MolecularProfile},
-    data:AlterationData[],
-    isPutativeDriver?:(datum:Mutation)=>boolean
+    data:ExtendedAlteration[],
+    isPutativeDriver?:(datum:ExtendedAlteration)=>boolean
 ):void {
     newDatum.gene = hugoGeneSymbol;
     newDatum.data = data;
@@ -92,7 +91,7 @@ function fillGeneticTrackDatum(
     const dispMutCounts:{[mutType:string]:number} = {};
 
     for (const event of data) {
-        const molecularAlterationType = molecularProfileIdToMolecularProfile[event.molecularProfileId].molecularAlterationType;
+        const molecularAlterationType = event.molecularProfileAlterationType;
         switch (molecularAlterationType) {
             case "COPY_NUMBER_ALTERATION":
                 const cnaEvent = cnaDataToString[(event as GeneMolecularData).value];
@@ -103,25 +102,25 @@ function fillGeneticTrackDatum(
                 }
                 break;
             case "MRNA_EXPRESSION":
-                if ((event as any).oql_regulation_direction /* todo */) {
-                    const mrnaEvent = (event as any).oql_regulation_direction === 1 ? "up" : "down";
+                if (event.alterationSubType) {
+                    const mrnaEvent = event.alterationSubType;
                     dispMrnaCounts[mrnaEvent] = dispMrnaCounts[mrnaEvent] || 0;
                     dispMrnaCounts[mrnaEvent] += 1;
                 }
                 break;
             case "PROTEIN_LEVEL":
-                if ((event as any).oql_regulation_direction /* todo */) {
-                    const protEvent = (event as any).oql_regulation_direction === 1 ? "up" : "down";
+                if (event.alterationSubType) {
+                    const protEvent = event.alterationSubType;
                     dispProtCounts[protEvent] = dispProtCounts[protEvent] || 0;
                     dispProtCounts[protEvent] += 1;
                 }
                 break;
             case "MUTATION_EXTENDED":
-                let oncoprintMutationType = getOncoprintMutationType(getSimplifiedMutationType((event as Mutation).mutationType)!);
+                let oncoprintMutationType = getOncoprintMutationType(getSimplifiedMutationType(event.mutationType)!);
                 if (oncoprintMutationType === "fusion") {
                     dispFusion = true;
                 } else {
-                    if (isPutativeDriver && isPutativeDriver(event as Mutation)) {
+                    if (isPutativeDriver && isPutativeDriver(event)) {
                         oncoprintMutationType += "_rec";
                     }
                     dispMutCounts[oncoprintMutationType] = dispMutCounts[oncoprintMutationType] || 0;
@@ -140,30 +139,27 @@ function fillGeneticTrackDatum(
 }
 
 export function makeGeneticTrackData(
-    caseAggregatedAlterationData:CaseAggregatedData<AlterationData>["samples"],
+    caseAggregatedAlterationData:CaseAggregatedData<ExtendedAlteration>["samples"],
     hugoGeneSymbols:string[],
     samples:Sample[],
-    molecularProfileIdToMolecularProfile:{[molecularProfileId:string]:MolecularProfile},
     genePanelInformation:GenePanelInformation,
-    isPutativeDriver?:(datum:Mutation)=>boolean
+    isPutativeDriver?:(datum:ExtendedAlteration)=>boolean
 ):GeneticTrackDatum[];
 
 export function makeGeneticTrackData(
-    caseAggregatedAlterationData:CaseAggregatedData<AlterationData>["patients"],
+    caseAggregatedAlterationData:CaseAggregatedData<ExtendedAlteration>["patients"],
     hugoGeneSymbols:string[],
     patients:Patient[],
-    molecularProfileIdToMolecularProfile:{[molecularProfileId:string]:MolecularProfile},
     genePanelInformation:GenePanelInformation,
-    isPutativeDriver?:(datum:Mutation)=>boolean
+    isPutativeDriver?:(datum:ExtendedAlteration)=>boolean
 ):GeneticTrackDatum[];
 
 export function makeGeneticTrackData(
-    caseAggregatedAlterationData:CaseAggregatedData<AlterationData>["samples"]|CaseAggregatedData<AlterationData>["patients"],
+    caseAggregatedAlterationData:CaseAggregatedData<ExtendedAlteration>["samples"]|CaseAggregatedData<ExtendedAlteration>["patients"],
     hugoGeneSymbols:string[],
     cases:Sample[]|Patient[],
-    molecularProfileIdToMolecularProfile:{[molecularProfileId:string]:MolecularProfile},
     genePanelInformation:GenePanelInformation,
-    isPutativeDriver?:(datum:Mutation)=>boolean
+    isPutativeDriver?:(datum:ExtendedAlteration)=>boolean
 ):GeneticTrackDatum[] {
     if (!cases.length) {
         return [];
@@ -186,7 +182,6 @@ export function makeGeneticTrackData(
                 }
                 fillGeneticTrackDatum(
                     newDatum, gene,
-                    molecularProfileIdToMolecularProfile,
                     caseAggregatedAlterationData[sample.uniqueSampleKey],
                     isPutativeDriver
                 );
@@ -210,7 +205,6 @@ export function makeGeneticTrackData(
                 }
                 fillGeneticTrackDatum(
                     newDatum, gene,
-                    molecularProfileIdToMolecularProfile,
                     caseAggregatedAlterationData[patient.uniquePatientKey],
                     isPutativeDriver
                 );

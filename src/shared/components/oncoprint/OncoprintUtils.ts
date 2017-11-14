@@ -111,9 +111,8 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
             return oncoprint.props.store.caseAggregatedDataByOQLLine.result!.map((x:any, index:number)=>{
                 const data = makeGeneticTrackData(
                     sampleMode ? x.cases.samples : x.cases.patients,
-                    oncoprint.props.store.genes.result!.map(x=>x.hugoGeneSymbol),
+                    [x.oql.gene],
                     sampleMode ? oncoprint.props.store.samples.result! : oncoprint.props.store.patients.result!,
-                    oncoprint.props.store.molecularProfileIdToMolecularProfile.result!,
                     oncoprint.props.store.genePanelInformation.result!,
                     oncoprint.isPutativeDriver
                 );

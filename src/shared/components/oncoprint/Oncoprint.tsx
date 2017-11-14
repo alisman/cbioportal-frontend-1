@@ -11,7 +11,7 @@ import {doWithRenderingSuppressedAndSortingOff, getClinicalTrackRuleSetParams, g
 import {getClinicalTrackSortComparator, getGeneticTrackSortComparator, heatmapTrackSortComparator} from "./SortUtils";
 import {transition} from "./DeltaUtils";
 import _ from "lodash";
-import {AlterationData} from "../../../pages/resultsView/ResultsViewPageStore";
+import {ExtendedAlteration} from "../../../pages/resultsView/ResultsViewPageStore";
 
 export type ClinicalTrackSpec<D> = {
     key: string; // for efficient diffing, just like in React. must be unique
@@ -46,7 +46,7 @@ export type GeneticTrackDatum = {
     patient?:string;
     study_id:string;
     uid:string;
-    data:(Mutation|GeneMolecularData)[];
+    data:ExtendedAlteration[];
     coverage?: GenePanelData[];
     na?: boolean;
     disp_mut?:string;
@@ -83,11 +83,6 @@ export interface IOncoprintProps {
     heatmapTracks: HeatmapTrackSpec[];
     divId:string;
     width:number;
-
-    annotation?:{
-        hotspots?:(d:AlterationData)=>boolean,
-        oncoKb?:(d:AlterationData)=>"likely oncogenic"|"predicted oncogenic"|"oncogenic"|false,
-    }
 
     horzZoomToFitIds?:string[];
 

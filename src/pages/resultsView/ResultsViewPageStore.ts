@@ -52,16 +52,17 @@ export const AlterationTypeConstants = {
 }
 
 export interface ExtendedAlteration extends Mutation, GeneMolecularData {
+    molecularProfileAlterationType: MolecularProfile["molecularAlterationType"];
     alterationType: string
     alterationSubType: string
+    oncoKbAnnotation?:"likely oncogenic"|"oncogenic"|"predicted oncogenic";
+    hotspotAnnotation?:boolean;
 };
 
 export interface ExtendedSample extends Sample {
     cancerType: string;
     cancerTypeDetailed: string;
 }
-
-export type AlterationData = GeneMolecularData | Mutation;
 
 export type CaseAggregatedData<T> = {
     samples: {[uniqueSampleKey:string]:T[]};
@@ -324,17 +325,20 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly unfilteredAlterations = remoteData<AlterationData[]>({
+    readonly unfilteredAlterations = remoteData<(Mutation|GeneMolecularData)[]>({
         await: ()=>[
             this.mutations,
             this.molecularData
         ],
         invoke: ()=>{
-            return Promise.resolve(([] as AlterationData[]).concat(this.mutations.result!).concat(this.molecularData.result!));
+            let result:(Mutation|GeneMolecularData)[] = [];
+            result = result.concat(this.mutations.result!);
+            result = result.concat(this.molecularData.result!);
+            return Promise.resolve(result);
         }
     });
 
-    readonly filteredAlterations = remoteData<AlterationData[]>({
+    readonly filteredAlterations = remoteData<ExtendedAlteration[]>({
         await:()=>[
             this.unfilteredAlterations,
             this.selectedMolecularProfiles,
@@ -342,12 +346,12 @@ export class ResultsViewPageStore {
         ],
         invoke:()=>{
             return Promise.resolve(
-                filterCBioPortalWebServiceData(this.oqlQuery, this.unfilteredAlterations.result!, (new accessors(this.selectedMolecularProfiles.result!)), this.defaultOQLQuery.result!, true)
+                filterCBioPortalWebServiceData(this.oqlQuery, this.unfilteredAlterations.result!, (new accessors(this.selectedMolecularProfiles.result!)), this.defaultOQLQuery.result!)
             );
         }
     });
 
-    readonly filteredAlterationsByOQLLine = remoteData<OQLLineFilterOutput<AlterationData>[]>({
+    readonly filteredAlterationsByOQLLine = remoteData<OQLLineFilterOutput[]>({
         await: ()=>[
             this.unfilteredAlterations,
             this.selectedMolecularProfiles,
@@ -355,11 +359,11 @@ export class ResultsViewPageStore {
         ],
         invoke: ()=>{
             return Promise.resolve(filterCBioPortalWebServiceDataByOQLLine(this.oqlQuery, this.unfilteredAlterations.result!,
-                (new accessors(this.selectedMolecularProfiles.result!)), this.defaultOQLQuery.result!, true));
+                (new accessors(this.selectedMolecularProfiles.result!)), this.defaultOQLQuery.result!));
         }
     });
 
-    readonly caseAggregatedData = remoteData<CaseAggregatedData<AlterationData>>({
+    readonly caseAggregatedData = remoteData<CaseAggregatedData<ExtendedAlteration>>({
         await: ()=>[
             this.filteredAlterations,
             this.samples,
@@ -375,7 +379,7 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly caseAggregatedDataByOQLLine = remoteData<{cases:CaseAggregatedData<AlterationData>, oql:OQLLineFilterOutput<AlterationData>}[]>({
+    readonly caseAggregatedDataByOQLLine = remoteData<{cases:CaseAggregatedData<ExtendedAlteration>, oql:OQLLineFilterOutput}[]>({
         await:()=>[
             this.filteredAlterationsByOQLLine,
             this.samples,
@@ -383,7 +387,7 @@ export class ResultsViewPageStore {
         ],
         invoke:()=>{
             return Promise.resolve(this.filteredAlterationsByOQLLine.result!.map(oql=>{
-                const cases:CaseAggregatedData<AlterationData> = {
+                const cases:CaseAggregatedData<ExtendedAlteration> = {
                     samples:
                         groupBy(oql.data, datum=>datum.uniqueSampleKey, this.samples.result!.map(sample=>sample.uniqueSampleKey)),
                     patients:
@@ -519,7 +523,7 @@ export class ResultsViewPageStore {
         }
     });
 
-    readonly filteredAlterationsByGene = remoteData<{[hugoGeneSymbol:string]:AlterationData[]}>({
+    readonly filteredAlterationsByGene = remoteData<{[hugoGeneSymbol:string]:ExtendedAlteration[]}>({
         await: () => [
             this.genes,
             this.filteredAlterations
