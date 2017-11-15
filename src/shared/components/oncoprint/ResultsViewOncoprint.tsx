@@ -21,7 +21,10 @@ import OncoprintControls, {
 } from "shared/components/oncoprint/controls/OncoprintControls";
 import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
 import {ClinicalAttribute, Gene, MolecularProfile, Mutation, Sample} from "../../api/generated/CBioPortalAPI";
-import {percentAltered, getPercentAltered, makeGeneticTracksMobxPromise} from "./OncoprintUtils";
+import {
+    percentAltered, getPercentAltered, makeGeneticTracksMobxPromise,
+    makeHeatmapTracksMobxPromise
+} from "./OncoprintUtils";
 import _ from "lodash";
 import onMobxPromise from "shared/lib/onMobxPromise";
 import AppConfig from "appConfig";
@@ -109,7 +112,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     private heatmapGeneInputValueUpdater:IReactionDisposer;
 
     private selectedClinicalAttributeIds = observable.shallowMap<boolean>();
-    private molecularProfileIdToHeatmapTracks =
+    public molecularProfileIdToHeatmapTracks =
         observable.map<HeatmapTrackGroupRecord>();
 
     private controlsHandlers:IOncoprintControlsHandlers & IObservableObject;
@@ -465,7 +468,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         }
     }
 
-    @action private sortByData() {
+    @action public sortByData() {
         this.sortMode = {type:"data"};
     }
     
@@ -670,47 +673,11 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         default: []
     });
 
-    readonly heatmapTracks = remoteData<HeatmapTrackSpec[]>({
-        invoke:async()=>{
-            const profiles = this.molecularProfileIdToHeatmapTracks.keys();
-            const tracksData:OncoprintHeatmapTrackData[] = _.flatten(await Promise.all(profiles.map(profileId=>{
-                const genes = this.molecularProfileIdToHeatmapTracks.get(profileId)!.genes.keys();
-                if (genes.length > 0) {
-                    return Promise.resolve(this.columnMode === "sample" ?
-                        this.props.querySession.getSampleHeatmapData(profileId, genes) :
-                        this.props.querySession.getPatientHeatmapData(profileId, genes));
-                } else {
-                    return Promise.resolve([]);
-                }
-            })));
-            return tracksData.map(track=>{
-                const molecularProfileId = track.genetic_profile_id;
-                const gene = track.gene;
-                return {
-                    key: `${molecularProfileId},${gene}`,
-                    label: gene,
-                    molecularProfileId: molecularProfileId,
-                    molecularAlterationType: track.genetic_alteration_type as MolecularProfile["molecularAlterationType"],
-                    datatype: track.datatype as MolecularProfile["datatype"],
-                    data: track.oncoprint_data,
-                    trackGroupIndex: this.molecularProfileIdToHeatmapTracks.get(molecularProfileId)!.trackGroupIndex,
-                    onRemove:action(()=>{
-                        const trackGroup = this.molecularProfileIdToHeatmapTracks.get(molecularProfileId);
-                        if (trackGroup) {
-                            trackGroup.genes.delete(gene);
-                            if (!trackGroup.genes.size) {
-                                this.molecularProfileIdToHeatmapTracks.delete(molecularProfileId);
-                                if (this.sortMode.type === "heatmap" && this.sortMode.clusteredHeatmapProfile === molecularProfileId) {
-                                    this.sortByData();
-                                }
-                            }
-                        }
-                    })
-                };
-            });
-        },
-        default: []
-    });
+    readonly sampleHeatmapTracks = makeHeatmapTracksMobxPromise(this, true);
+    readonly patientHeatmapTracks = makeHeatmapTracksMobxPromise(this, false);
+    @computed get heatmapTracks() {
+        return (this.columnMode === "sample" ? this.sampleHeatmapTracks : this.patientHeatmapTracks);
+    }
 
     @computed get clusterHeatmapTrackGroupIndex() {
         if (this.sortMode.type === "heatmap") {

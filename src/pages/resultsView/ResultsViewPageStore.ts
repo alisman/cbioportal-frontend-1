@@ -39,6 +39,8 @@ import {
 } from "../../shared/components/cancerSummary/CancerSummaryContent";
 import {writeTest} from "../../shared/lib/writeTest";
 import {filterCBioPortalWebServiceDataByOQLLine, OQLLineFilterOutput} from "../../shared/lib/oql/oqlfilter";
+import GeneMolecularDataCache from "../../shared/cache/GeneMolecularDataCache";
+import GeneCache from "../../shared/cache/GeneCache";
 
 export type SamplesSpecificationElement = {studyId: string, sampleId: string, sampleListId: undefined} |
     {studyId: string, sampleId: undefined, sampleListId: string};
@@ -1025,16 +1027,36 @@ export class ResultsViewPageStore {
         }
     }, {});
 
-    readonly genes = remoteData<Gene[]>(async () => {
-        if (this.hugoGeneSymbols && this.hugoGeneSymbols.length) {
-            const order = stringListToIndexSet(this.hugoGeneSymbols);
-            return _.sortBy(await client.fetchGenesUsingPOST({
-                geneIdType: "HUGO_GENE_SYMBOL",
-                geneIds: this.hugoGeneSymbols.slice(),
-                projection: "SUMMARY"
-            }), (gene: Gene) => order[gene.hugoGeneSymbol]);
-        } else {
-            return [];
+    readonly molecularProfileIdToDataQueryFilter = remoteData<{[molecularProfileId:string]:IDataQueryFilter}>({
+        await: ()=>[
+            this.molecularProfilesInStudies,
+            this.studyToDataQueryFilter
+        ],
+        invoke: ()=>{
+            const ret:{[molecularProfileId:string]:IDataQueryFilter} = {};
+            for (const molecularProfile of this.molecularProfilesInStudies.result!) {
+                ret[molecularProfile.molecularProfileId] = this.studyToDataQueryFilter.result![molecularProfile.studyId];
+            }
+            return Promise.resolve(ret);
+        },
+        default: {}
+    });
+
+    readonly genes = remoteData<Gene[]>({
+        invoke: async () => {
+            if (this.hugoGeneSymbols && this.hugoGeneSymbols.length) {
+                const order = stringListToIndexSet(this.hugoGeneSymbols);
+                return _.sortBy(await client.fetchGenesUsingPOST({
+                    geneIdType: "HUGO_GENE_SYMBOL",
+                    geneIds: this.hugoGeneSymbols.slice(),
+                    projection: "SUMMARY"
+                }), (gene: Gene) => order[gene.hugoGeneSymbol]);
+            } else {
+                return [];
+            }
+        },
+        onResult:(genes:Gene[])=>{
+            this.geneCache.addData(genes);
         }
     });
 
@@ -1087,9 +1109,9 @@ export class ResultsViewPageStore {
                 return memo;
             },{} as { [hugoGeneSymbol:string] : Mutation[] });
         },
-        onResult: result=>{
+        onResult: (result:{[hugoGeneSymbol: string]: Mutation[]})=>{
             for (const gene of Object.keys(result)) {
-                this.mutationDataCache.addData([result![gene]]);
+                this.mutationDataCache.addData([result[gene]]);
             }
         }
     });
@@ -1126,6 +1148,16 @@ export class ResultsViewPageStore {
     @cached get mutationDataCache() {
         return new MutationDataCache(this.studyToMutationMolecularProfile.result,
             this.studyToDataQueryFilter.result);
+    }
+
+    @cached get geneMolecularDataCache() {
+        return new GeneMolecularDataCache(
+            this.molecularProfileIdToDataQueryFilter.result
+        );
+    }
+
+    @cached get geneCache() {
+        return new GeneCache();
     }
 
     @action clearErrors() {

@@ -33,11 +33,12 @@ export type ClinicalTrackSpec<D> = {
 
 export type HeatmapTrackDatum = {
     hugo_gene_symbol: string;
-    profile_data: number;
+    profile_data: number|null;
     sample?: string;
     patient?: string;
     study: string;
     uid: string;
+    na?:boolean;
 };
 
 export type GeneticTrackDatum = {

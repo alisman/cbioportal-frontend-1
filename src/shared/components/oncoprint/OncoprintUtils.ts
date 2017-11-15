@@ -8,8 +8,10 @@ import {genetic_rule_set_same_color_for_all_no_recurrence,
 import {OncoprintPatientGeneticTrackData, OncoprintSampleGeneticTrackData} from "../../lib/QuerySession";
 import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
 import {remoteData} from "../../api/remoteData";
-import {makeGeneticTrackData} from "./DataUtils";
+import {makeGeneticTrackData, makeHeatmapTrackData} from "./DataUtils";
 import ResultsViewOncoprint from "./ResultsViewOncoprint";
+import _ from "lodash";
+import {action} from "mobx";
 
 export function doWithRenderingSuppressedAndSortingOff(oncoprint:OncoprintJS<any>, task:()=>void) {
     oncoprint.suppressRendering();
@@ -111,7 +113,7 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
             return oncoprint.props.store.caseAggregatedDataByOQLLine.result!.map((x:any, index:number)=>{
                 const data = makeGeneticTrackData(
                     sampleMode ? x.cases.samples : x.cases.patients,
-                    [x.oql.gene],
+                    x.oql.gene,
                     sampleMode ? oncoprint.props.store.samples.result! : oncoprint.props.store.patients.result!,
                     oncoprint.props.store.genePanelInformation.result!,
                     oncoprint.isPutativeDriver
@@ -128,4 +130,62 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
         },
         default: [],
     });   
+}
+
+export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
+    return remoteData<HeatmapTrackSpec[]>({
+        await:()=>[
+            oncoprint.props.store.samples,
+            oncoprint.props.store.patients,
+            oncoprint.props.store.molecularProfileIdToMolecularProfile,
+        ],
+        invoke:async()=>{
+
+            const molecularProfileIdToMolecularProfile = oncoprint.props.store.molecularProfileIdToMolecularProfile.result!;
+            const molecularProfileIdToHeatmapTracks = oncoprint.molecularProfileIdToHeatmapTracks;
+
+            const neededGenes = _.flatten(molecularProfileIdToHeatmapTracks.values().map(v=>v.genes.keys()));
+            const genes = await oncoprint.props.store.geneCache.getPromise(neededGenes.map(g=>({hugoGeneSymbol:g})), true);
+
+            const cacheQueries = _.flatten(molecularProfileIdToHeatmapTracks.entries().map(entry=>(
+                entry[1].genes.keys().map(g=>({
+                    molecularProfileId: entry[0],
+                    entrezGeneId: oncoprint.props.store.geneCache.get({ hugoGeneSymbol:g })!.data!.entrezGeneId,
+                    hugoGeneSymbol: g.toUpperCase()
+                }))
+            )));
+            await oncoprint.props.store.geneMolecularDataCache.getPromise(cacheQueries, true);
+
+            const samples = oncoprint.props.store.samples.result!;
+            const patients = oncoprint.props.store.patients.result!;
+
+            return cacheQueries.map(query=>{
+                const molecularProfileId = query.molecularProfileId;
+                const gene = query.hugoGeneSymbol;
+                const data = oncoprint.props.store.geneMolecularDataCache.get(query)!.data!;
+                return {
+                    key: `${molecularProfileId},${gene}`,
+                    label: gene,
+                    molecularProfileId: molecularProfileId,
+                    molecularAlterationType: molecularProfileIdToMolecularProfile[molecularProfileId].molecularAlterationType,
+                    datatype: molecularProfileIdToMolecularProfile[molecularProfileId].datatype,
+                    data: makeHeatmapTrackData(gene, sampleMode? samples : patients, data),
+                    trackGroupIndex: molecularProfileIdToHeatmapTracks.get(molecularProfileId)!.trackGroupIndex,
+                    onRemove:action(()=>{
+                        const trackGroup = molecularProfileIdToHeatmapTracks.get(molecularProfileId);
+                        if (trackGroup) {
+                            trackGroup.genes.delete(gene);
+                            if (!trackGroup.genes.size) {
+                                molecularProfileIdToHeatmapTracks.delete(molecularProfileId);
+                                if (oncoprint.sortMode.type === "heatmap" && oncoprint.sortMode.clusteredHeatmapProfile === molecularProfileId) {
+                                    oncoprint.sortByData();
+                                }
+                            }
+                        }
+                    })
+                };
+            });
+        },
+        default: []
+    });
 }
