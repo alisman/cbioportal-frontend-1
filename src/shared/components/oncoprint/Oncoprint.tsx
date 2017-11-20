@@ -13,12 +13,23 @@ import {transition} from "./DeltaUtils";
 import _ from "lodash";
 import {ExtendedAlteration} from "../../../pages/resultsView/ResultsViewPageStore";
 
-export type ClinicalTrackSpec<D> = {
+
+export type ClinicalTrackDatum = {
+    attr_id: string;
+    study_id: string;
+    sample?:string;
+    patient?:string;
+    uid: string;
+    attr_val_counts: {[val:string]:number};
+    attr_val?: string|number|ClinicalTrackDatum["attr_val_counts"];
+    na?:boolean;
+};
+
+export type ClinicalTrackSpec = {
     key: string; // for efficient diffing, just like in React. must be unique
     label: string;
     description: string;
-    data: D[];
-    valueKey: string;
+    data: ClinicalTrackDatum[];
 } & ({
     datatype: "counts";
     countsCategoryLabels:string[];
@@ -79,7 +90,7 @@ export type HeatmapTrackSpec = {
 export interface IOncoprintProps {
     oncoprintRef?:(oncoprint:OncoprintJS<any>)=>void;
 
-    clinicalTracks: ClinicalTrackSpec<any>[];
+    clinicalTracks: ClinicalTrackSpec[];
     geneticTracks: GeneticTrackSpec[];
     heatmapTracks: HeatmapTrackSpec[];
     divId:string;

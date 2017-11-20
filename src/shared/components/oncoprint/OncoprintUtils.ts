@@ -8,10 +8,12 @@ import {genetic_rule_set_same_color_for_all_no_recurrence,
 import {OncoprintPatientGeneticTrackData, OncoprintSampleGeneticTrackData} from "../../lib/QuerySession";
 import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
 import {remoteData} from "../../api/remoteData";
-import {makeGeneticTrackData, makeHeatmapTrackData} from "./DataUtils";
+import {makeGeneticTrackData, makeHeatmapTrackData, makeClinicalTrackData} from "./DataUtils";
 import ResultsViewOncoprint from "./ResultsViewOncoprint";
 import _ from "lodash";
 import {action} from "mobx";
+import {SpecialAttribute} from "shared/cache/ClinicalDataCache";
+import Spec = Mocha.reporters.Spec;
 
 export function doWithRenderingSuppressedAndSortingOff(oncoprint:OncoprintJS<any>, task:()=>void) {
     oncoprint.suppressRendering();
@@ -45,25 +47,25 @@ export function getGeneticTrackRuleSetParams(distinguishMutationType?:boolean, d
     }
 }
 
-export function getClinicalTrackRuleSetParams(track:ClinicalTrackSpec<any>) {
+export function getClinicalTrackRuleSetParams(track:ClinicalTrackSpec) {
     if (track.datatype === "number") {
         return {
             type: 'bar',
-            value_key: track.valueKey,
+            value_key: "attr_val",
             value_range: track.numberRange,
             log_scale: track.numberLogScale
         };
     } else if (track.datatype === "counts") {
         return {
             type: "stacked_bar",
-            value_key: track.valueKey,
+            value_key: "attr_val",
             categories: track.countsCategoryLabels,
             fills: track.countsCategoryFills
         };
     } else {
         return {
             type: 'categorical',
-            category_key: track.valueKey
+            category_key: "attr_val"
         };
     }
 }
@@ -130,6 +132,53 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
         },
         default: [],
     });   
+}
+
+export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
+    return remoteData<ClinicalTrackSpec[]>({
+        await:()=>[
+            oncoprint.props.store.samples,
+            oncoprint.props.store.patients
+        ],
+        invoke: async()=>{
+            if (oncoprint.selectedClinicalAttributeIds.keys().length === 0) {
+                return [];
+            }
+            const attributes = oncoprint.selectedClinicalAttributeIds.keys().map(attrId=>{
+                return oncoprint.clinicalAttributesById[attrId];
+            });
+            await oncoprint.props.store.clinicalDataCache.getPromise(attributes, true);
+            return attributes.map((attribute:ClinicalAttribute)=>{
+                const data = oncoprint.props.store.clinicalDataCache.get(attribute)!.data!;
+                const ret:Partial<ClinicalTrackSpec> = {
+                    key: attribute.clinicalAttributeId,
+                    label: attribute.displayName,
+                    description: attribute.description,
+                    data:makeClinicalTrackData(
+                        attribute,
+                        sampleMode ? oncoprint.props.store.samples.result! : oncoprint.props.store.patients.result!,
+                        data
+                    ),
+                };
+                if (attribute.datatype === "NUMBER") {
+                    ret.datatype = "number";
+                    if (attribute.clinicalAttributeId === SpecialAttribute.FractionGenomeAltered) {
+                        (ret as any).numberRange = [0,1];
+                    } else if (attribute.clinicalAttributeId === SpecialAttribute.MutationCount) {
+                        (ret as any).numberLogScale = true;
+                    }
+                } else if (attribute.datatype === "STRING") {
+                    ret.datatype = "string";
+                } else if (attribute.clinicalAttributeId === SpecialAttribute.MutationSpectrum) {
+                    ret.datatype = "counts";
+                    (ret as any).countsCategoryLabels = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
+                    (ret as any).countsCategoryFills = ['#3D6EB1', '#8EBFDC', '#DFF1F8', '#FCE08E', '#F78F5E', '#D62B23'];
+                }
+                return ret as ClinicalTrackSpec;
+            });
+        },
+        default: []
+    });
 }
 
 export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {

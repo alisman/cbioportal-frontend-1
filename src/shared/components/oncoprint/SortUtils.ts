@@ -163,9 +163,9 @@ function makeCountsMapClinicalComparator(categories:string[]) {
     }
 }
 
-export function getClinicalTrackSortComparator(track:ClinicalTrackSpec<any>) {
+export function getClinicalTrackSortComparator(track:ClinicalTrackSpec) {
     if (track.datatype === "number") {
-        return makeNumericalComparator(track.valueKey);
+        return makeNumericalComparator("attr_val");
     } else if (track.datatype === "string") {
         return stringClinicalComparator;
     } else if (track.datatype === "counts") {

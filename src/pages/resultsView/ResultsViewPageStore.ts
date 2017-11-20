@@ -41,6 +41,7 @@ import {writeTest} from "../../shared/lib/writeTest";
 import {filterCBioPortalWebServiceDataByOQLLine, OQLLineFilterOutput} from "../../shared/lib/oql/oqlfilter";
 import GeneMolecularDataCache from "../../shared/cache/GeneMolecularDataCache";
 import GeneCache from "../../shared/cache/GeneCache";
+import ClinicalDataCache from "../../shared/cache/ClinicalDataCache";
 
 export type SamplesSpecificationElement = {studyId: string, sampleId: string, sampleListId: undefined} |
     {studyId: string, sampleId: undefined, sampleListId: string};
@@ -885,7 +886,8 @@ export class ResultsViewPageStore {
             return client.fetchPatientsUsingPOST({
                 patientIdentifiers: _.values(patientKeyToPatientIdentifier)
             });
-        }
+        },
+        default: []
     });
 
     readonly samplesWithoutCancerTypeClinicalData = remoteData<Sample[]>({
@@ -1158,6 +1160,10 @@ export class ResultsViewPageStore {
 
     @cached get geneCache() {
         return new GeneCache();
+    }
+
+    @cached get clinicalDataCache() {
+        return new ClinicalDataCache(this.samples.result, this.patients.result, this.studyToMutationMolecularProfile.result);
     }
 
     @action clearErrors() {

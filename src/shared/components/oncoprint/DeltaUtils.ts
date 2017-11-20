@@ -416,8 +416,8 @@ function transitionGeneticTrack(
 }
 
 function transitionClinicalTrack(
-    nextSpec:ClinicalTrackSpec<any>|undefined,
-    prevSpec:ClinicalTrackSpec<any>|undefined,
+    nextSpec:ClinicalTrackSpec|undefined,
+    prevSpec:ClinicalTrackSpec|undefined,
     getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId},
     oncoprint:OncoprintJS<any>,
     nextProps:IOncoprintProps

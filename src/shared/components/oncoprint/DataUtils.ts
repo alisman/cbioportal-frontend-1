@@ -3,13 +3,17 @@ import {
     GenePanelInformation
 } from "../../../pages/resultsView/ResultsViewPageStore";
 import {
-    GeneMolecularData, GenePanelData, MolecularProfile, Mutation, Patient,
+    ClinicalAttribute,
+    ClinicalData,
+    GeneMolecularData, GenePanelData, MolecularProfile, Mutation, MutationCount, Patient,
     Sample
 } from "../../api/generated/CBioPortalAPI";
-import {GeneticTrackDatum, HeatmapTrackDatum} from "./Oncoprint";
-import {isSample, isSampleList} from "../../lib/CBioPortalAPIUtils";
+import {ClinicalTrackDatum, GeneticTrackDatum, HeatmapTrackDatum} from "./Oncoprint";
+import {isMutationCount, isSample, isSampleList} from "../../lib/CBioPortalAPIUtils";
 import {getSimplifiedMutationType, SimplifiedMutationType} from "../../lib/oql/accessors";
 import _ from "lodash";
+import {FractionGenomeAltered, MutationSpectrum} from "../../api/generated/CBioPortalAPIInternal";
+import {SpecialAttribute} from "../../cache/ClinicalDataCache";
 
 const cnaDataToString:{[integerCNA:string]:string|undefined} = {
     "-2": "homdel",
@@ -274,6 +278,139 @@ export function makeHeatmapTrackData(
             const data = keyToData[c.uniquePatientKey];
             fillHeatmapTrackDatum(trackDatum, hugoGeneSymbol, c, data);
             return trackDatum as HeatmapTrackDatum;
+        });
+    }
+    return ret;
+}
+
+function fillNoDataValue(
+    trackDatum:Partial<ClinicalTrackDatum>,
+    attribute:ClinicalAttribute,
+) {
+    if (attribute.clinicalAttributeId === SpecialAttribute.MutationCount) {
+        trackDatum.attr_val = 0;
+    } else {
+        trackDatum.na = true;
+    }
+}
+function fillClinicalTrackDatum(
+    trackDatum:Partial<ClinicalTrackDatum>,
+    attribute:ClinicalAttribute,
+    case_:Sample|Patient,
+    data?:(ClinicalData|MutationCount|FractionGenomeAltered|MutationSpectrum)[],
+) {
+    trackDatum.attr_id = attribute.clinicalAttributeId;
+    trackDatum.study_id = case_.studyId;
+    trackDatum.attr_val_counts = {};
+
+    if (!data || !data.length) {
+        fillNoDataValue(trackDatum, attribute);
+    } else {
+        if (attribute.datatype.toLowerCase() === "number") {
+            let numValCount = 0;
+            let numValSum = 0;
+            for (const x of data) {
+                if (isMutationCount(x)) {
+                    numValCount += 1;
+                    numValSum += x.mutationCount;
+                } else {
+                    const newVal = parseFloat((x as ClinicalData|FractionGenomeAltered).value+"");
+                    if (!isNaN(newVal)) {
+                        numValCount += 1;
+                        numValSum += newVal;
+                    }
+                }
+            }
+            if (numValCount === 0) {
+                fillNoDataValue(trackDatum, attribute);
+            } else {
+                // average
+                trackDatum.attr_val = numValSum / numValCount;
+            }
+        } else if (attribute.datatype.toLowerCase() === "string") {
+            const attr_val_counts = trackDatum.attr_val_counts;
+            for (const datum of (data as ClinicalData[])) {
+                attr_val_counts[datum.value] = attr_val_counts[datum.value] || 0;
+                attr_val_counts[datum.value] += 1;
+            }
+            const attr_vals = Object.keys(attr_val_counts);
+            if (attr_vals.length > 1) {
+                trackDatum.attr_val = "Mixed";
+            } else {
+                trackDatum.attr_val = attr_vals[0];
+            }
+        } else if (attribute.clinicalAttributeId === SpecialAttribute.MutationSpectrum) {
+            const spectrumData = data as MutationSpectrum[];
+            // add up vectors
+            const attr_val_counts = trackDatum.attr_val_counts;
+            attr_val_counts["C>A"] = 0;
+            attr_val_counts["C>G"] = 0;
+            attr_val_counts["C>T"] = 0;
+            attr_val_counts["T>A"] = 0;
+            attr_val_counts["T>C"] = 0;
+            attr_val_counts["T>G"] = 0;
+            for (const datum of spectrumData) {
+                attr_val_counts["C>A"] += datum.CtoA;
+                attr_val_counts["C>G"] += datum.CtoG;
+                attr_val_counts["C>T"] += datum.CtoT;
+                attr_val_counts["T>A"] += datum.TtoA;
+                attr_val_counts["T>C"] += datum.TtoC;
+                attr_val_counts["T>G"] += datum.TtoG;
+            }
+            // if all 0, then NA
+            if (attr_val_counts["C>A"] === 0 &&
+                attr_val_counts["C>G"] === 0 &&
+                attr_val_counts["C>T"] === 0 &&
+                attr_val_counts["T>A"] === 0 &&
+                attr_val_counts["T>C"] === 0 &&
+                attr_val_counts["T>G"] === 0) {
+                fillNoDataValue(trackDatum, attribute);
+            }
+            trackDatum.attr_val = trackDatum.attr_val_counts;
+        }
+    }
+    return trackDatum;
+}
+
+export function makeClinicalTrackData(
+    attribute:ClinicalAttribute,
+    cases:Sample[]|Patient[],
+    data: (ClinicalData|MutationCount|FractionGenomeAltered|MutationSpectrum)[],
+):ClinicalTrackDatum[] {
+    // First collect all the data by id
+    const uniqueKeyToData:{[uniqueKey:string]:(ClinicalData|MutationCount|FractionGenomeAltered|MutationSpectrum)[]}
+        = _.groupBy(data,
+        isSampleList(cases) ?
+            datum=>datum.uniqueSampleKey :
+            datum=>datum.uniquePatientKey);// TS error will be gone when ersin updates API
+
+    // Create oncoprint data
+    let ret:ClinicalTrackDatum[];
+    if (isSampleList(cases)) {
+        ret = cases.map(sample=>{
+            const trackDatum:Partial<ClinicalTrackDatum> = {};
+            trackDatum.uid = sample.uniqueSampleKey;
+            trackDatum.sample = sample.sampleId;
+            fillClinicalTrackDatum(
+                trackDatum,
+                attribute,
+                sample,
+                uniqueKeyToData[sample.uniqueSampleKey]
+            );
+            return trackDatum as ClinicalTrackDatum;
+        });
+    } else {
+        ret = cases.map(patient=>{
+            const trackDatum:Partial<ClinicalTrackDatum> = {};
+            trackDatum.uid = patient.uniquePatientKey;
+            trackDatum.patient = patient.patientId;
+            fillClinicalTrackDatum(
+                trackDatum,
+                attribute,
+                patient,
+                uniqueKeyToData[patient.uniquePatientKey]
+            );
+            return trackDatum as ClinicalTrackDatum;
         });
     }
     return ret;

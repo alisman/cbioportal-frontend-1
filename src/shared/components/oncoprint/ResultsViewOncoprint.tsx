@@ -23,7 +23,7 @@ import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageSt
 import {ClinicalAttribute, Gene, MolecularProfile, Mutation, Sample} from "../../api/generated/CBioPortalAPI";
 import {
     percentAltered, getPercentAltered, makeGeneticTracksMobxPromise,
-    makeHeatmapTracksMobxPromise
+    makeHeatmapTracksMobxPromise, makeClinicalTracksMobxPromise
 } from "./OncoprintUtils";
 import _ from "lodash";
 import onMobxPromise from "shared/lib/onMobxPromise";
@@ -35,7 +35,7 @@ import svgToPdfDownload from "shared/lib/svgToPdfDownload";
 import DefaultTooltip from "shared/components/defaultTooltip/DefaultTooltip";
 import {Button} from "react-bootstrap";
 import tabularDownload from "./tabularDownload";
-import {makeGeneticTrackData} from "./DataUtils";
+import {SpecialAttribute} from "shared/cache/ClinicalDataCache";
 
 interface IResultsViewOncoprintProps {
     divId: string;
@@ -49,7 +49,10 @@ interface IResultsViewOncoprintProps {
 }
 
 export type OncoprintClinicalAttribute =
-    Pick<ClinicalAttribute, "clinicalAttributeId"|"datatype"|"description"|"displayName"|"patientAttribute">;
+    Pick<ClinicalAttribute, "datatype"|"description"|"displayName"|"patientAttribute"> &
+    {
+        clinicalAttributeId: string|SpecialAttribute;
+    };
 
 export type SortMode = {type:"data"|"alphabetical"|"caseList"|"heatmap", clusteredHeatmapProfile?:string};
 
@@ -57,21 +60,21 @@ type OncoprintTrackData = OncoprintSampleGeneticTrackData | OncoprintPatientGene
 
 const specialClinicalAttributes:OncoprintClinicalAttribute[] = [
     {
-        clinicalAttributeId: "FRACTION_GENOME_ALTERED",
+        clinicalAttributeId: SpecialAttribute.FractionGenomeAltered,
         datatype: "NUMBER",
         description: "Fraction Genome Altered",
         displayName: "Fraction Genome Altered",
         patientAttribute: false
     },
     {
-        clinicalAttributeId: "# mutations",
+        clinicalAttributeId: SpecialAttribute.MutationCount,
         datatype: "NUMBER",
         description: "Number of mutations",
         displayName: "Total mutations",
         patientAttribute: false
     },
     {
-        clinicalAttributeId: "NO_CONTEXT_MUTATION_SIGNATURE",
+        clinicalAttributeId: SpecialAttribute.MutationSpectrum,
         datatype: "COUNTS_MAP",
         description: "Number of point mutations in the sample counted by different types of nucleotide changes.",
         displayName: "Mutation spectrum",
@@ -111,7 +114,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     private heatmapGeneInputValueUpdater:IReactionDisposer;
 
-    private selectedClinicalAttributeIds = observable.shallowMap<boolean>();
+    public selectedClinicalAttributeIds = observable.shallowMap<boolean>();
     public molecularProfileIdToHeatmapTracks =
         observable.map<HeatmapTrackGroupRecord>();
 
@@ -554,11 +557,11 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.showMinimap = false;
     }
 
-    private onSelectClinicalTrack(clinicalAttributeId:string) {
+    private onSelectClinicalTrack(clinicalAttributeId:string|SpecialAttribute) {
         this.selectedClinicalAttributeIds.set(clinicalAttributeId, true);
     }
 
-    private onDeleteClinicalTrack(clinicalAttributeId:string) {
+    private onDeleteClinicalTrack(clinicalAttributeId:string|SpecialAttribute) {
         this.selectedClinicalAttributeIds.delete(clinicalAttributeId);
     }
 
@@ -634,44 +637,11 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         return (this.columnMode === "sample" ? this.sampleGeneticTracks : this.patientGeneticTracks);
     }
 
-    readonly clinicalTracks = remoteData<ClinicalTrackSpec<any>[]>({
-        invoke: async()=>{
-            if (this.selectedClinicalAttributeIds.keys().length === 0) {
-                return [];
-            }
-            const data = await Promise.resolve(((this.columnMode === "sample" ?
-                this.props.querySession.getSampleClinicalData(this.selectedClinicalAttributeIds.keys()) :
-                this.props.querySession.getPatientClinicalData(this.selectedClinicalAttributeIds.keys()))));
-            const dataByAttrId = _.groupBy(data, "attr_id");
-            const trackSpecs = Object.keys(dataByAttrId).map(attrId=>{
-                const attr:OncoprintClinicalAttribute = this.clinicalAttributesById[attrId];
-                const ret:Partial<ClinicalTrackSpec<any>> = {
-                    key: attrId,
-                    label: attr.displayName,
-                    description: attr.description,
-                    data: dataByAttrId[attrId],
-                    valueKey: "attr_val"
-                };
-                if (attr.datatype === "NUMBER") {
-                    ret.datatype = "number";
-                    if (attrId === "FRACTION_GENOME_ALTERED") {
-                        (ret as any).numberRange = [0,1];
-                    } else if (attrId === "# mutations") {
-                        (ret as any).numberLogScale = true;
-                    }
-                } else if (attr.datatype === "STRING") {
-                    ret.datatype = "string";
-                } else if (attrId === "NO_CONTEXT_MUTATION_SIGNATURE") {
-                    ret.datatype = "counts";
-                    (ret as any).countsCategoryLabels = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
-                    (ret as any).countsCategoryFills = ['#3D6EB1', '#8EBFDC', '#DFF1F8', '#FCE08E', '#F78F5E', '#D62B23'];
-                }
-                return ret as ClinicalTrackSpec<any>;
-            });
-            return trackSpecs;
-        },
-        default: []
-    });
+    readonly sampleClinicalTracks = makeClinicalTracksMobxPromise(this, true);
+    readonly patientClinicalTracks = makeClinicalTracksMobxPromise(this, false);
+    @computed get clinicalTracks() {
+        return (this.columnMode === "sample" ? this.sampleClinicalTracks : this.patientClinicalTracks);
+    }
 
     readonly sampleHeatmapTracks = makeHeatmapTracksMobxPromise(this, true);
     readonly patientHeatmapTracks = makeHeatmapTracksMobxPromise(this, false);

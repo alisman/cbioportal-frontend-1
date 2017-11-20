@@ -3,7 +3,7 @@ import fileDownload from "react-file-download";
 
 export default function tabularDownload(
     geneticTracks:GeneticTrackSpec[],
-    clinicalTracks:ClinicalTrackSpec<any>[],
+    clinicalTracks:ClinicalTrackSpec[],
     heatmapTracks:HeatmapTrackSpec[],
     uidOrder:string[],
     getCaseId:(uid:string)=>string,

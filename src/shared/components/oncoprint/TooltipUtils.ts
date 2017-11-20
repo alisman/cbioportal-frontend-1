@@ -32,7 +32,7 @@ function makeGenePanelPopupLink(gene_panel_id:string) {
     });
     return anchor;
 }
-export function makeClinicalTrackTooltip(track:ClinicalTrackSpec<any>, link_id?:boolean) {
+export function makeClinicalTrackTooltip(track:ClinicalTrackSpec, link_id?:boolean) {
     return function(d:any) {
         let ret = '';
         if (track.datatype === "counts") {
