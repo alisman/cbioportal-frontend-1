@@ -41,7 +41,7 @@ async function fetch(
     patients:PatientIdentifier[],
     studyToMutationMolecularProfile:{[studyId:string]:MolecularProfile}
 ) {
-    let results:any[][] =
+    let resultsPerStudyPerAttribute:Object[][][] =
         await Promise.all(queries.map<any>(q=>{
         if (q.clinicalAttributeId === SpecialAttribute.MutationCount) {
             const studyToSamples = _.groupBy(samples, sample=>sample.studyId);
@@ -89,18 +89,17 @@ async function fetch(
             }));
         } else {
             const normalQuery = q as NormalQuery;
-            return [client.fetchClinicalDataUsingPOST({
+            return Promise.all([client.fetchClinicalDataUsingPOST({
                 clinicalDataType: normalQuery.patientAttribute ? "PATIENT" : "SAMPLE",
                 clinicalDataMultiStudyFilter: {
                     attributeIds: [normalQuery.clinicalAttributeId],
                     identifiers: normalQuery.patientAttribute ? patients.map(p=>({entityId:p.patientId, studyId:p.studyId})) : samples.map(s=>({entityId:s.sampleId, studyId:s.studyId}))
                 }
-            })];
+            })]);
         }
     }));
-    results = results.map(x=>_.flatten(x)); // make each element the data for a single attribute, aka flatten separate study requests
-    results = _.flatten(results); // unwrap each element so that results[i] corresponds to queries[i]
-    return results.map((data:any[], index:number)=>({ data:[data], meta:queries[index] }));
+    let resultsPerAttribute:Object[][] = resultsPerStudyPerAttribute.map(x=>_.flatten(x)); // make each element the data for a single attribute, aka flatten separate study requests
+    return resultsPerAttribute.map((data:any[], index:number)=>({ data:[data], meta:queries[index] }));
 }
 
 export default class ClinicalDataCache extends LazyMobXCache<ClinicalData[]|MutationCount[]|FractionGenomeAltered[]|MutationSpectrum[], Query> {

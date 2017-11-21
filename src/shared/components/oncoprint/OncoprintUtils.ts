@@ -121,7 +121,7 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                     oncoprint.isPutativeDriver
                 );
                 return {
-                    key: index+"",
+                    key: `GENETICTRACK_${index}`,
                     label: x.oql.gene,
                     oql: x.oql.oql_line,
                     info: sampleMode ? percentAltered(oncoprint.props.store.alteredSampleKeys.result!.length, oncoprint.props.store.sequencedSampleKeys.result!.length)
@@ -151,7 +151,7 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
             return attributes.map((attribute:ClinicalAttribute)=>{
                 const data = oncoprint.props.store.clinicalDataCache.get(attribute)!.data!;
                 const ret:Partial<ClinicalTrackSpec> = {
-                    key: attribute.clinicalAttributeId,
+                    key: `CLINICALTRACK_${attribute.clinicalAttributeId}`,
                     label: attribute.displayName,
                     description: attribute.description,
                     data:makeClinicalTrackData(
@@ -213,7 +213,7 @@ export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                 const gene = query.hugoGeneSymbol;
                 const data = oncoprint.props.store.geneMolecularDataCache.get(query)!.data!;
                 return {
-                    key: `${molecularProfileId},${gene}`,
+                    key: `HEATMAPTRACK_${molecularProfileId},${gene}`,
                     label: gene,
                     molecularProfileId: molecularProfileId,
                     molecularAlterationType: molecularProfileIdToMolecularProfile[molecularProfileId].molecularAlterationType,
