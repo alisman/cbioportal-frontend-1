@@ -667,8 +667,15 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }
 
     readonly caseSetName = remoteData({
+        await:()=>[
+            this.props.store.sampleLists
+        ],
         invoke:()=>{
-            return Promise.resolve(this.props.querySession.getSampleSetName());
+            if (this.props.store.sampleLists.result!.length === 1) {
+                return Promise.resolve(this.props.store.sampleLists.result![0].name);
+            } else {
+                return Promise.resolve(undefined);
+            }
         }
     });
 
@@ -709,7 +716,8 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }
 
     @computed get caseSetInfo() {
-        if (this.caseSetName.isComplete && this.props.store.patients.isComplete && this.props.store.samples.isComplete) {
+        if (this.caseSetName.isComplete && this.props.store.patients.isComplete && this.props.store.samples.isComplete &&
+            this.caseSetName.result) {
             return (
                 <div>
                     <span>Case Set: {this.caseSetName.result} ({this.props.store.patients.result.length} patients / {this.props.store.samples.result.length} samples)</span>

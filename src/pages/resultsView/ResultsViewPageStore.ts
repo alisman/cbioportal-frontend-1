@@ -1,7 +1,8 @@
 import {
     DiscreteCopyNumberFilter, DiscreteCopyNumberData, ClinicalData, ClinicalDataMultiStudyFilter, Sample,
     SampleIdentifier, MolecularProfile, Mutation, GeneMolecularData, MolecularDataFilter, Gene,
-    ClinicalDataSingleStudyFilter, CancerStudy, PatientIdentifier, Patient, GenePanelData, GenePanelDataFilter
+    ClinicalDataSingleStudyFilter, CancerStudy, PatientIdentifier, Patient, GenePanelData, GenePanelDataFilter,
+    SampleList
 } from "shared/api/generated/CBioPortalAPI";
 import client from "shared/api/cbioportalClientInstance";
 import {computed, observable, action} from "mobx";
@@ -745,6 +746,14 @@ export class ResultsViewPageStore {
     @computed get myCancerGenomeData() {
         return fetchMyCancerGenomeData();
     }
+
+    readonly sampleLists = remoteData<SampleList[]>({
+        invoke:()=>Promise.all(Object.keys(this.studyToSampleListId).map(studyId=>{
+            return client.getSampleListUsingGET({
+                sampleListId: this.studyToSampleListId[studyId]
+            });
+        }))
+    });
 
     readonly mutationMapperStores = remoteData<{ [hugoGeneSymbol: string]: MutationMapperStore }>({
         await: () => [this.genes, this.oncoKbAnnotatedGenes],
