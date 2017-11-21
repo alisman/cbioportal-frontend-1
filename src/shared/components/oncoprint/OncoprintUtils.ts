@@ -151,7 +151,7 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
             return attributes.map((attribute:ClinicalAttribute)=>{
                 const data = oncoprint.props.store.clinicalDataCache.get(attribute)!.data!;
                 const ret:Partial<ClinicalTrackSpec> = {
-                    key: `CLINICALTRACK_${attribute.clinicalAttributeId}`,
+                    key: oncoprint.clinicalAttributeIdToTrackKey(attribute.clinicalAttributeId),
                     label: attribute.displayName,
                     description: attribute.description,
                     data:makeClinicalTrackData(

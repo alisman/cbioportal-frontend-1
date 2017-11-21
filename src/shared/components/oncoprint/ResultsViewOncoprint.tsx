@@ -86,6 +86,8 @@ const SAMPLE_MODE_URL_PARAM = "show_samples";
 const CLINICAL_TRACKS_URL_PARAM = "clinicallist";
 const HEATMAP_TRACKS_URL_PARAM = "heatmap_track_groups";
 
+const CLINICAL_TRACK_KEY_PREFIX = "CLINICALTRACK_";
+
 type HeatmapTrackGroupRecord = {
     trackGroupIndex:number,
     genes:ObservableMap<boolean>,
@@ -557,12 +559,20 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.showMinimap = false;
     }
 
+    public clinicalTrackKeyToAttributeId(clinicalTrackKey:string) {
+        return clinicalTrackKey.substr(CLINICAL_TRACK_KEY_PREFIX.length);
+    }
+
+    public clinicalAttributeIdToTrackKey(clinicalAttributeId:string|SpecialAttribute) {
+        return `${CLINICAL_TRACK_KEY_PREFIX}${clinicalAttributeId}`;
+    }
+
     private onSelectClinicalTrack(clinicalAttributeId:string|SpecialAttribute) {
         this.selectedClinicalAttributeIds.set(clinicalAttributeId, true);
     }
 
-    private onDeleteClinicalTrack(clinicalAttributeId:string|SpecialAttribute) {
-        this.selectedClinicalAttributeIds.delete(clinicalAttributeId);
+    private onDeleteClinicalTrack(clinicalTrackKey:string) {
+        this.selectedClinicalAttributeIds.delete(this.clinicalTrackKeyToAttributeId(clinicalTrackKey));
     }
 
     readonly clinicalAttributes = remoteData({

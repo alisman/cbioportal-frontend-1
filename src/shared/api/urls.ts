@@ -27,10 +27,10 @@ export function getStudyViewUrl(studyId:string) {
     return cbioUrl('study', {id: studyId});
 }
 export function getSampleViewUrl(studyId:string, sampleId:string) {
-    return cbioUrl('patient', { studyId, sampleId });
+    return cbioUrl('case.do', {}, `/patient?studyId=${studyId}&sampleId=${sampleId}`);
 }
 export function getPatientViewUrl(studyId:string, patientId:string) {
-    return cbioUrl('patient', { studyId, caseId:patientId });
+    return cbioUrl('case.do', {}, `/patient?studyId=${studyId}&caseId=${patientId}`);
 }
 export function getStudySummaryUrl(studyId:string) {
     return cbioUrl('study', {id: studyId}, 'summary');

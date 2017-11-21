@@ -236,7 +236,7 @@ export function makeGeneticTrackTooltip(
         if (d.sample) {
             caseIdElt = link_id ? sampleViewAnchorTag(d.study_id, d.sample) : d.sample;
         } else if (d.patient) {
-            caseIdElt = link_id ? sampleViewAnchorTag(d.study_id, d.patient) : d.patient;
+            caseIdElt = link_id ? patientViewAnchorTag(d.study_id, d.patient) : d.patient;
         } else {
             caseIdElt = "";
         }
