@@ -124,8 +124,8 @@ export function makeGeneticTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                     key: `GENETICTRACK_${index}`,
                     label: x.oql.gene,
                     oql: x.oql.oql_line,
-                    info: sampleMode ? percentAltered(oncoprint.props.store.alteredSampleKeys.result!.length, oncoprint.props.store.sequencedSampleKeys.result!.length)
-                                    : percentAltered(oncoprint.props.store.alteredPatientKeys.result!.length, oncoprint.props.store.sequencedPatientKeys.result!.length),
+                    info: sampleMode ? percentAltered(Object.keys(x.cases.samples).filter(k=>!!x.cases.samples[k].length).length, oncoprint.props.store.sequencedSampleKeys.result!.length)
+                                    : percentAltered(Object.keys(x.cases.patients).filter(k=>!!x.cases.patients[k].length).length, oncoprint.props.store.sequencedPatientKeys.result!.length),
                     data
                 };
             });

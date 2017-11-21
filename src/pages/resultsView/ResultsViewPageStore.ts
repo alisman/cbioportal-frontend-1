@@ -405,6 +405,51 @@ export class ResultsViewPageStore {
         }
     });
 
+    private isCaseSequenced(sample:boolean, genePanelInformation: GenePanelInformation, uniqueKey:string, hugoGeneSymbol?:string) {
+        const geneInfoMap = sample ? genePanelInformation.samples : genePanelInformation.patients;
+        const geneInfo = geneInfoMap[uniqueKey];
+        if (!geneInfo) {
+            return {
+                sequenced: true,
+                wholeExomeSequenced: true
+            };
+        } else {
+            if (hugoGeneSymbol) {
+                return {
+                    sequenced: geneInfo.hasOwnProperty(hugoGeneSymbol),
+                    wholeExomeSequenced: false
+                };
+            } else {
+                return {
+                    sequenced: !!Object.keys(geneInfo).length,
+                    wholeExomeSequenced: false
+                };
+            }
+        }
+    }
+
+    public readonly isSampleSequenced = remoteData({
+        await: ()=>[
+            this.genePanelInformation
+        ],
+        invoke: ()=>{
+            return Promise.resolve((uniqueSampleKey:string, hugoGeneSymbol?:string)=>{
+                return this.isCaseSequenced(true, this.genePanelInformation.result!, uniqueSampleKey, hugoGeneSymbol);
+            });
+        }
+    });
+
+    public readonly isPatientSequenced = remoteData({
+        await: ()=>[
+            this.genePanelInformation
+        ],
+        invoke: ()=>{
+            return Promise.resolve((uniquePatientKey:string, hugoGeneSymbol?:string)=>{
+                return this.isCaseSequenced(false, this.genePanelInformation.result!, uniquePatientKey, hugoGeneSymbol);
+            });
+        }
+    });
+
     readonly genePanelInformation = remoteData<GenePanelInformation>({
         await:()=>[
             this.studyToMutationMolecularProfile,
@@ -457,21 +502,21 @@ export class ResultsViewPageStore {
 
     readonly sequencedSampleKeys = remoteData<string[]>({
         await:()=>[
-            this.genePanelInformation
+            this.samples,
+            this.isSampleSequenced
         ],
         invoke:()=>{
-            const samples = this.genePanelInformation.result!.samples;
-            return Promise.resolve(Object.keys(samples).filter(sampleKey=>!!Object.keys(samples[sampleKey]).length));
+            return Promise.resolve(this.samples.result!.map(s=>s.uniqueSampleKey).filter(k=>this.isSampleSequenced.result!(k).sequenced));
         }
     });
 
     readonly sequencedPatientKeys = remoteData<string[]>({
         await:()=>[
-            this.genePanelInformation
+            this.patients,
+            this.isPatientSequenced
         ],
         invoke:()=>{
-            const patients = this.genePanelInformation.result!.patients;
-            return Promise.resolve(Object.keys(patients).filter(patientKey=>!!Object.keys(patients[patientKey]).length));
+            return Promise.resolve(this.patients.result!.map(p=>p.uniquePatientKey).filter(k=>this.isPatientSequenced.result!(k).sequenced));
         }
     });
     
