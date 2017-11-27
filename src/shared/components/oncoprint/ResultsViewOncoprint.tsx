@@ -782,7 +782,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     public render() {
         return (
-            <div>
+            <div className="cbioportal-frontend">
                 {this.caseSetInfo}
                 <OncoprintControls
                     handlers={this.controlsHandlers}

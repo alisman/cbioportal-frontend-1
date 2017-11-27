@@ -18,6 +18,7 @@ import Slider from "react-rangeslider";
 import 'react-rangeslider/lib/index.css';
 import EditableSpan from "shared/components/editableSpan/EditableSpan";
 import FadeInteraction from "shared/components/fadeInteraction/FadeInteraction";
+import './styles.scss';
 
 export interface IOncoprintControlsHandlers {
     onSelectColumnType?:(type:"sample"|"patient")=>void,
@@ -398,7 +399,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                 return <span/>;
             } else {
                 menu = (
-                    <div style={{padding: "10px 5px", width: "270px", minWidth: "270px"}}>
+                    <div className="oncoprint__controls__heatmap_menu">
                         <ReactSelect
                             clearable={false}
                             searchable={false}
@@ -408,30 +409,27 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                             options={this.heatmapProfileOptions}
                         />
                         <textarea
-                            rows={5}
-                            cols={100}
                             placeholder="Type space- or comma-separated genes here, then click 'Add Genes to Heatmap'"
                             name={EVENT_KEY.heatmapGeneInput}
                             onChange={this.onType}
                             value={this.props.state.heatmapGeneInputValue}
                         >
                         </textarea>
-                        <br/>
-                        <button
-                             style={{fontSize:"13px", cursor:"pointer"}}
+
+                        <button className="btn btn-sm btn-default"
                              name={EVENT_KEY.addGenesToHeatmap}
                              onClick={this.onButtonClick}
                          >Add Genes to Heatmap</button>
-                        <br/>
+
                         <button
-                            style={{fontSize:"13px", cursor:"pointer"}}
+                            className="btn btn-sm btn-default"
                             name={EVENT_KEY.removeHeatmap}
                             onClick={this.onButtonClick}
                         >Remove Heatmap</button>
-                        <br/>
+
                         {!this.props.state.hideClusterHeatmapButton &&
                             (<button
-                                 style={{fontSize:"13px"}}
+                                 className="btn btn-sm btn-default"
                                  name={EVENT_KEY.sortByHeatmapClustering}
                                  onClick={this.onButtonClick}
                                  disabled={this.props.state.clusterHeatmapButtonDisabled}
@@ -453,8 +451,8 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     private getSortMenu() {
         return (
             <CustomDropdown bsStyle="default" title="Sort" id="sortDropdown">
-                <div style={{padding: "10px", width: "250px"}}>
-                    <form action="" style={{marginBottom: 0}}>
+                <div>
+
                         <div className="radio"><label>
                             <input
                                 type="radio"
@@ -513,7 +511,6 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                                 disabled
                             /> Sorted by heatmap clustering order
                         </label></div>)}
-                    </form>
                 </div>
             </CustomDropdown>
         );
@@ -522,7 +519,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     private getMutationColorMenu() {
         return (
             <CustomDropdown bsStyle="default" title="Mutation Color" id="mutationColorDropdown">
-                <div style={{padding: "10px 5px", width: "250px", minWidth: "250px"}}>
+                <div>
                     <form action="" style={{marginBottom: "0"}}>
                         <div className="checkbox"><label>
                             <input
@@ -676,55 +673,51 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     private getViewMenu() {
         return (
             <CustomDropdown bsStyle="default" title="View" id="viewDropdownButton">
-                <div style={{padding: "10px 5px", width: "270px", minWidth: "270px"}}>
-                    <form action="" style={{marginBottom: 0}}>
-                        <fieldset style={{border: 0, paddingBottom: 0}}>
-                            <legend style={{marginBottom: 0, fontSize: "18px"}}>Data type:</legend>
-                            <div className="radio"><label>
-                                <input
-                                    type="radio"
-                                    name="columnType"
-                                    value={EVENT_KEY.columnTypeSample}
-                                    checked={this.props.state.selectedColumnType === "sample"}
-                                    onClick={this.onInputClick}
-                                /> Events per sample
-                            </label></div>
-                            <div className="radio"><label>
-                                <input
-                                    type="radio"
-                                    name="columnType"
-                                    value={EVENT_KEY.columnTypePatient}
-                                    checked={this.props.state.selectedColumnType === "patient"}
-                                    onClick={this.onInputClick}
-                                /> Events per patient
-                            </label></div>
-                        </fieldset>
-                        <div className="checkbox"><label>
-                            <input
-                                type="checkbox"
-                                value={EVENT_KEY.showUnalteredColumns}
-                                checked={this.props.state.showUnalteredColumns}
-                                onClick={this.onInputClick}
-                            /> Show unaltered columns
-                        </label></div>
-                        <div className="checkbox"><label>
-                            <input
-                                type="checkbox"
-                                value={EVENT_KEY.showWhitespaceBetweenColumns}
-                                checked={this.props.state.showWhitespaceBetweenColumns}
-                                onClick={this.onInputClick}
-                            /> Show whitespace between columns
-                        </label></div>
-                        <div className="checkbox"><label>
-                            <input
-                                type="checkbox"
-                                value={EVENT_KEY.showClinicalTrackLegends}
-                                checked={this.props.state.showClinicalTrackLegends}
-                                onClick={this.onInputClick}
-                            /> Show legends for clinical tracks
-                        </label></div>
-                    </form>
-                </div>
+                <strong>Data type:</strong>
+                <div className="radio"><label>
+                    <input
+                        type="radio"
+                        name="columnType"
+                        value={EVENT_KEY.columnTypeSample}
+                        checked={this.props.state.selectedColumnType === "sample"}
+                        onClick={this.onInputClick}
+                    /> Events per sample
+                </label></div>
+                <div className="radio"><label>
+                    <input
+                        type="radio"
+                        name="columnType"
+                        value={EVENT_KEY.columnTypePatient}
+                        checked={this.props.state.selectedColumnType === "patient"}
+                        onClick={this.onInputClick}
+                    /> Events per patient
+                </label></div>
+
+                <hr />
+                <div className="checkbox"><label>
+                    <input
+                        type="checkbox"
+                        value={EVENT_KEY.showUnalteredColumns}
+                        checked={this.props.state.showUnalteredColumns}
+                        onClick={this.onInputClick}
+                    /> Show unaltered columns
+                </label></div>
+                <div className="checkbox"><label>
+                    <input
+                        type="checkbox"
+                        value={EVENT_KEY.showWhitespaceBetweenColumns}
+                        checked={this.props.state.showWhitespaceBetweenColumns}
+                        onClick={this.onInputClick}
+                    /> Show whitespace between columns
+                </label></div>
+                <div className="checkbox"><label>
+                    <input
+                        type="checkbox"
+                        value={EVENT_KEY.showClinicalTrackLegends}
+                        checked={this.props.state.showClinicalTrackLegends}
+                        onClick={this.onInputClick}
+                    /> Show legends for clinical tracks
+                </label></div>
             </CustomDropdown>
         );
     }
@@ -732,48 +725,46 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     private getDownloadMenu() {
         return (
             <CustomDropdown bsStyle="default" title="Download" id="downloadDropdownButton">
-                <div style={{padding:"10px 5px", width:"125px", minWidth:"125px"}}>
-                    <button
-                        style={{fontSize:"13px", cursor:"pointer", width:"100%"}}
-                        name={EVENT_KEY.downloadPDF}
-                        onClick={this.onButtonClick}
-                    >PDF</button>
-                    <button
-                        style={{fontSize:"13px", cursor:"pointer", width:"100%"}}
-                        name={EVENT_KEY.downloadPNG}
-                        onClick={this.onButtonClick}
-                    >PNG</button>
-                    <button
-                        style={{fontSize:"13px", cursor:"pointer", width:"100%"}}
-                        name={EVENT_KEY.downloadSVG}
-                        onClick={this.onButtonClick}
-                    >SVG</button>
-                    <button
-                        style={{fontSize:"13px", cursor:"pointer", width:"100%"}}
-                        name={EVENT_KEY.downloadOrder}
-                        onClick={this.onButtonClick}
-                    >{(this.props.state.columnMode && this.props.state.columnMode[0].toUpperCase() + this.props.state.columnMode.slice(1))||""} order</button>
-                    <button
-                        style={{fontSize:"13px", cursor:"pointer", width:"100%"}}
-                        name={EVENT_KEY.downloadTabular}
-                        onClick={this.onButtonClick}
-                    >Tabular</button>
-                </div>
+                <button
+                    className="btn btn-sm btn-default"
+                    name={EVENT_KEY.downloadPDF}
+                    onClick={this.onButtonClick}
+                >PDF</button>
+                <button
+                    className="btn btn-sm btn-default"
+                    name={EVENT_KEY.downloadPNG}
+                    onClick={this.onButtonClick}
+                >PNG</button>
+                <button
+                    className="btn btn-sm btn-default"
+                    name={EVENT_KEY.downloadSVG}
+                    onClick={this.onButtonClick}
+                >SVG</button>
+                <button
+                    className="btn btn-sm btn-default"
+                    name={EVENT_KEY.downloadOrder}
+                    onClick={this.onButtonClick}
+                >{(this.props.state.columnMode && this.props.state.columnMode[0].toUpperCase() + this.props.state.columnMode.slice(1))||""} order</button>
+                <button
+                    className="btn btn-sm btn-default"
+                    name={EVENT_KEY.downloadTabular}
+                    onClick={this.onButtonClick}
+                >Tabular</button>
             </CustomDropdown>
         );
     }
 
     private getHorzZoomControls() {
         return (
-            <div>
+            <div className="btn btn-default oncoprint__zoom-controls">
                 <DefaultTooltip
                     overlay={<span>Zoom out of oncoprint.</span>}
                 >
-                    <Button
+                    <div
                         onClick={this.onZoomOutClick}
                     >
-                        ZOOM OUT
-                    </Button>
+                        <i className="fa fa-search-minus"></i>
+                    </div>
                 </DefaultTooltip>
                 <DefaultTooltip
                     overlay={<span>Zoom in/out of oncoprint.</span>}
@@ -790,33 +781,33 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                         />
                     </div>
                 </DefaultTooltip>
-                <Button
-                    disabled={true}
-                >
-                    <EditableSpan
-                        value={(100*this.horzZoomSliderState).toFixed()}
-                        setValue={this.onSetHorzZoomTextInput}
-                        maxChars={3}
-                        numericOnly={true}
-                        textFieldAppearance={true}
-                        style={{
-                            background:"white",
-                            minWidth:"50px",
-                            minHeight:"30px",
-                            fontSize: "15px",
-                            fontFamily: "arial",
-                        }}
-                    />
-                    %
-                </Button>
+
+                <EditableSpan
+                    value={(100*this.horzZoomSliderState).toFixed()}
+                    setValue={this.onSetHorzZoomTextInput}
+                    maxChars={3}
+                    numericOnly={true}
+                    textFieldAppearance={true}
+                    style={{
+                        background:"white",
+                        minWidth:"30px",
+                        fontSize: "14px",
+                        fontFamily: "arial",
+                        border:'none',
+                        padding:0,
+                        marginTop:0,
+                        marginBottom:0
+                    }}
+                />
+
                 <DefaultTooltip
                     overlay={<span>Zoom in to oncoprint.</span>}
                 >
-                    <Button
+                    <div
                         onClick={this.onZoomInClick}
                     >
-                        ZOOM IN
-                    </Button>
+                          <i className="fa fa-search-plus"></i>
+                    </div>
                 </DefaultTooltip>
             </div>
         );
@@ -832,14 +823,14 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                 active={this.showMinimap}
                 onClick={this.toggleShowMinimap}
             >
-                Show minimap
+                <i className="fa fa-expand"></i>&thinsp;
             </Button>
         );
     }
 
     render() {
         return (
-            <FadeInteraction>
+            <div className="oncoprint__controls">
                 <div style={{float:"left", width:"220px"}}>
                     <Observer>
                         {this.getClinicalTracksMenu}
@@ -866,7 +857,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                     </Observer>
                     {this.minimapButton}
                 </ButtonGroup>
-            </FadeInteraction>
+            </div>
         );
     }
 }
