@@ -430,6 +430,7 @@ export class QueryStore
 	@observable showMutSigPopup = false;
 	@observable showGisticPopup = false;
 	@observable showGenesetsHierarchyPopup = false;
+	@observable showGenesetsVolcanoPopup = false;
 	@observable.ref searchTextPresets:ReadonlyArray<string> = AppConfig.skinExampleStudyQueries;
 	@observable priorityStudies = AppConfig.priorityStudies;
 	@observable showSelectedStudiesOnly:boolean = false;
@@ -1428,7 +1429,14 @@ export class QueryStore
 		this.geneQuery = normalizeQuery([this.geneQuery, ...toAppend].join(' '));
 	}
 	
-	@action applyGenesetsSelection(map_geneset_selected:ObservableMap<boolean>)
+	@action addToGenesetSelection(map_geneset_selected:ObservableMap<boolean>)
+    {
+	    let [toAppend, toRemove] = _.partition(map_geneset_selected.keys(), geneSet => map_geneset_selected.get(geneSet));
+	    const genesetQuery = _.union(toAppend, this.genesetIds).join(' ');
+        this.genesetQuery = normalizeQuery(genesetQuery);
+    }
+	
+	@action applyGenesetSelection(map_geneset_selected:ObservableMap<boolean>)
     {
         const [toAppend, toRemove] = _.partition(map_geneset_selected.keys(), geneSet => map_geneset_selected.get(geneSet));
         let genesetQuery = this.genesetQuery;
