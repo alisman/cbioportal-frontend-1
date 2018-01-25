@@ -1,12 +1,8 @@
 var assert = require('assert');
 var expect = require('chai').expect;
+var waitForOncoprint = require('./specUtils').waitForOncoprint;
 
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, "");
-
-function waitForOncoprint(timeout) {
-    browser.pause(100); // give oncoprint time to disappear
-    $('#oncoprint-inner svg rect').waitForExist(10000); // as a proxy for oncoprint being rendered, wait for an svg rectangle to appear in the legend
-}
 
 function ssAssert(result, message){
     assert(result[0].isWithinMisMatchTolerance);
@@ -97,7 +93,7 @@ describe('result page tabs', function(){
 
 describe('result page tabs, loading from session id', function(){
     before(function(){
-        var url = `${CBIOPORTAL_URL}/index.do?session_id=5881154ee4b06eff74adf9c9`;
+        var url = `${CBIOPORTAL_URL}/index.do?session_id=596f9fa3498e5df2e292bdfd`;
         browser.url(url);
         browser.localStorage('POST', {key: 'localdev', value: 'true'});
         browser.refresh();
@@ -177,7 +173,3 @@ describe('result page tabs, loading from session id', function(){
         ssAssert(res);
     });
 });
-
-
-
-
