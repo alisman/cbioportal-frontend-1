@@ -15,10 +15,10 @@ exports.config = {
     specs: [
         './specs/**/*.js'  // './specs/**/screenshot.spec.js'
     ],
-
-    // specs: [
-    //      './specs/**/results.spec.js'
-    // ],
+    //
+    specs: [
+         './specs/**/screenshot.spec.js'
+    ],
 
     // Patterns to exclude.
     exclude: [
@@ -50,9 +50,13 @@ exports.config = {
         // maxInstances can get overwritten per capability. So if you have an in-house Selenium
         // grid with only 5 firefox instances available you can make sure that not more than
         // 5 instances get started at a time.
-        maxInstances: 1,
+        maxInstances: 0.1,
         //
         browserName: 'chrome',
+        // chromeOptions: {
+        //     args: ['--headless'],
+        //     binary: '/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
+        // }
     }],
     //
     // ===================
@@ -123,11 +127,10 @@ exports.config = {
             referenceName: getScreenshotName(path.join(process.cwd(), 'screenshots/reference')),
             screenshotName: getScreenshotName(path.join(process.cwd(), 'screenshots/screen')),
             diffName: getScreenshotName(path.join(process.cwd(), 'screenshots/diff')),
-            misMatchTolerance:0.1
+            misMatchTolerance:0.01
         }),
-        viewportChangePause: 300,
-        viewports: [{ width: 1600, height: 1000 }],
-        orientations: ['landscape', 'portrait'],
+        viewportChangePause:1000,
+        viewports: [{ width: 1600, height: 1000 }]
     },
     // Framework you want to run your specs with.
     // The following are supported: Mocha, Jasmine, and Cucumber

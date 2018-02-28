@@ -386,7 +386,7 @@ export class CancerSummaryContent extends React.Component<ICancerSummaryContentP
 
                 <div>
                     <FormGroup>
-                        <ControlLabel>Y Axis Value:</ControlLabel>
+                        <ControlLabel>Y Axiis Value:</ControlLabel>
                         <FormControl componentClass="select" data-test="cancerSummaryYAxisSelect" onChange={this.handleYAxisChange}
                                      ref={(el: any) => this.inputYAxisEl = el}>
                             <option value="alt-freq">Alteration Frequency</option>

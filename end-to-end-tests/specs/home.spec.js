@@ -401,13 +401,18 @@ describe("results page", function() {
             browser.waitForExist('li a#oncoprint-result-tab', 10000);
             assert(!browser.isVisible('li a#mutex-result-tab'));
         });
-        it("should not appear in a multiple study query with one gene", function() {
+        it.skip("should not appear in a multiple study query with one gene", function() {
             browser.url(`${CBIOPORTAL_URL}/index.do?cancer_study_id=all&Z_SCORE_THRESHOLD=2&RPPA_SCORE_THRESHOLD=2&data_priority=0&case_set_id=all&gene_list=KRAS&geneset_list=+&tab_index=tab_visualize&Action=Submit&cancer_study_list=coadread_tcga_pub%2Ccellline_nci60%2Cacc_tcga`);
             browser.waitForExist('li a#oncoprint-result-tab', 10000);
+            browser.waitUntil(function(){
+                return !browser.isVisible('li a#mutex-result-tab');
+            });
             assert(!browser.isVisible('li a#mutex-result-tab'));
-
             browser.url(`${CBIOPORTAL_URL}/index.do?cancer_study_id=all&Z_SCORE_THRESHOLD=2&RPPA_SCORE_THRESHOLD=2&data_priority=0&case_set_id=all&gene_list=KRAS%253A%2520MUT&geneset_list=+&tab_index=tab_visualize&Action=Submit&cancer_study_list=coadread_tcga_pub%2Ccellline_nci60%2Cacc_tcga`);
             browser.waitForExist('li a#oncoprint-result-tab', 10000);
+            browser.waitUntil(function(){
+                return !browser.isVisible('li a#mutex-result-tab');
+            });
             assert(!browser.isVisible('li a#mutex-result-tab'));
         });
     });
@@ -415,11 +420,10 @@ describe("results page", function() {
 
 describe('oncoprint', function() {
 
-    this.retries(2);
+    //this.retries(2);
 
     before(()=>{
         browser.url(CBIOPORTAL_URL);
-
         browser.localStorage('POST', {key: 'localdev', value: 'true'});
         browser.refresh();
         browser.setViewportSize({ height:1400, width:1000 });
@@ -843,7 +847,7 @@ describe('oncoprint', function() {
 describe('case set selection in front page query form', function(){
     var selectedCaseSet_sel = 'div[data-test="CaseSetSelector"] span.Select-value-label[aria-selected="true"]';
 
-    this.retries(2);
+    //this.retries(2);
 
     beforeEach(function() {
         var url = CBIOPORTAL_URL;
@@ -1002,7 +1006,7 @@ describe('case set selection in front page query form', function(){
 describe('case set selection in modify query form', function(){
     var selectedCaseSet_sel = 'div[data-test="CaseSetSelector"] span.Select-value-label[aria-selected="true"]';
 
-    this.retries(2);
+    //this.retries(2);
 
     beforeEach(function(){
         var url = `${CBIOPORTAL_URL}/index.do?cancer_study_id=coadread_tcga_pub&Z_SCORE_THRESHOLD=2&RPPA_SCORE_THRESHOLD=2&data_priority=0&case_set_id=coadread_tcga_pub_rppa&gene_list=KRAS%2520NRAS%2520BRAF&geneset_list=+&tab_index=tab_visualize&Action=Submit&genetic_profile_ids_PROFILE_MUTATION_EXTENDED=coadread_tcga_pub_mutations&genetic_profile_ids_PROFILE_COPY_NUMBER_ALTERATION=coadread_tcga_pub_gistic`;
@@ -1093,7 +1097,7 @@ describe('case set selection in modify query form', function(){
 
 describe('genetic profile selection in modify query form', function(){
 
-    this.retries(2);
+    //this.retries(2);
 
     beforeEach(function(){
         var url = `${CBIOPORTAL_URL}/index.do?cancer_study_id=chol_tcga&Z_SCORE_THRESHOLD=2.0&RPPA_SCORE_THRESHOLD=2.0&data_priority=0&case_set_id=chol_tcga_all&gene_list=EGFR&geneset_list=+&tab_index=tab_visualize&Action=Submit&genetic_profile_ids_PROFILE_MUTATION_EXTENDED=chol_tcga_mutations&genetic_profile_ids_PROFILE_COPY_NUMBER_ALTERATION=chol_tcga_gistic&genetic_profile_ids_PROFILE_PROTEIN_EXPRESSION=chol_tcga_rppa_Zscores`;

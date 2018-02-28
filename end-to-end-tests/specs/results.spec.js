@@ -102,6 +102,7 @@ describe('Results Page', function() {
             it('handles change to absolute value yaxis',function(){
                 browser.selectByIndex('[data-test="cancerSummaryYAxisSelect"]',1);
                 var res = browser.checkElement('#pancancer_study_summary', { hide:['.qtip'] });
+                console.log(res);
                 assertScreenShotMatch(res);
             });
 
