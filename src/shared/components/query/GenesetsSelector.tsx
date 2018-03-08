@@ -3,7 +3,7 @@ import * as styles_any from './styles/styles.module.scss';
 import {Modal} from 'react-bootstrap';
 import ReactSelect from 'react-select';
 import {observer} from "mobx-react";
-import {computed} from 'mobx';
+import {computed, ObservableMap} from 'mobx';
 import {FlexRow, FlexCol} from "../flexbox/FlexBox";
 import gene_lists from './gene_lists';
 import GenesetsValidator from "./GenesetsValidator";
@@ -129,15 +129,17 @@ export default class GenesetsSelector extends QueryStoreComponent<GenesetsSelect
                     <Modal
                         className={classNames('cbioportal-frontend',styles.GenesetsVolcanoSelectorWindow)}
                         show={this.store.showGenesetsVolcanoPopup}
-                        onHide={() => this.store.showGenesetsVolcanoPopup = false}
+                        onHide={() => this.store.showGenesetsVolcanoPopup = false }
                     >
                     <Modal.Header closeButton>
                     <Modal.Title>Select Gene Sets From Volcano Plot</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                     <GenesetsVolcanoSelector
-                        gsvaProfile={this.store.getFilteredProfiles("GENESET_SCORE")[0].molecularProfileId}
-                        sampleListId={this.store.defaultSelectedSampleListId}
+                        initialSelection={this.store.genesetIds}
+                        data={this.store.volcanoPlotTableData.result}
+                        plotData={this.store.volcanoPlotGraphData.result}
+                        maxY={this.store.maxYVolcanoPlot.result}
                         onSelect={map_genesets_selected => {
                             this.store.addToGenesetSelection(map_genesets_selected);
                             this.store.showGenesetsVolcanoPopup = false;
