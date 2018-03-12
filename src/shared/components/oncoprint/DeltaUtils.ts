@@ -46,7 +46,7 @@ export function transition(
         oncoprint.keepSorted(true);
     }
     if (suppressingRendering) {
-        oncoprint.releaseRendering();
+        oncoprint.releaseRendering(nextProps.onReleaseRendering);
     }
 }
 
@@ -91,7 +91,7 @@ function tryReleaseRendering(
     oncoprint:OncoprintJS<any>
 ){
     if (!nextProps.suppressRendering && prevProps.suppressRendering) {
-        oncoprint.releaseRendering();
+        oncoprint.releaseRendering(nextProps.onReleaseRendering);
     }
 }
 

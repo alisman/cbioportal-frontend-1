@@ -137,6 +137,7 @@ export interface IOncoprintProps {
     onTrackSortDirectionChange?: (trackId:TrackId, dir:number)=>void;
 
     suppressRendering?:boolean;
+    onReleaseRendering?:()=>void;
 }
 
 @observer
