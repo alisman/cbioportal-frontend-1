@@ -51,3 +51,11 @@
   }
 
 }
+
+.oncoprintContainer {
+  opacity: 0;
+  &.fadeIn {
+    transition: opacity .75s ease-in-out;
+    opacity:1;
+  }
+}

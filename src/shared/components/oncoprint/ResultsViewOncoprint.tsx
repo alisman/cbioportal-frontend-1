@@ -919,63 +919,62 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     public render() {
         return (
-            <div className="cbioportal-frontend"
-                 onMouseEnter={this.onMouseEnter}
-                 onMouseLeave={this.onMouseLeave}
-            >
-
-                {this.caseSetInfo}
-
-                {(this.oncoprint && !this.oncoprint.webgl_unavailable) &&
-                (<FadeInteraction showByDefault={true} show={this.mouseInsideBounds}>
-                    <OncoprintControls
-                        handlers={this.controlsHandlers}
-                        state={this.controlsState}
-                    />
-                </FadeInteraction>)}
-
-                <div style={{position:"relative"}}>
-                    {
-                        (this.isLoading || !this.renderingComplete) && (
-                            <div
-                                className='oncoprintLoadingIndicator'
-                                style={{
-                                    position:"absolute", top:0, left:0, width:"100%", height:"100%"
-                                }}
-                            >
-                                <div>Loading Oncoprint data</div>
-                                <LoadingIndicator style={{display:'block'}} isLoading={true}/>
-                            </div>
-                        )
-                    }
+            <div style={{position:'relative', minHeight:400}} className="cbioportal-frontend">
+                {
                     <div
-                        className={classNames({ "oncoprint-hidden":this.isHidden })}
+                        className={ classNames('oncoprintLoadingIndicator', { 'hidden': !this.isHidden }) }
+                        style={{
+                            position: "absolute", top: 0, left: 0, width: "100%", height: "100%"
+                        }}
                     >
-                        {this.alterationInfo}
-                        <Oncoprint
-                            oncoprintRef={this.oncoprintRef}
-                            clinicalTracks={this.clinicalTracks.result}
-                            geneticTracks={this.geneticTracks.result}
-                            genesetHeatmapTracks={this.genesetHeatmapTracks.result}
-                            heatmapTracks={this.heatmapTracks.result}
-                            divId={this.props.divId}
-                            width={1050}
-                            suppressRendering={this.isLoading}
-                            onReleaseRendering={this.onReleaseRendering}
-                            hiddenIds={!this.showUnalteredColumns ? this.unalteredKeys.result : undefined}
+                        <div>Loading Oncoprint data</div>
+                        <LoadingIndicator style={{display: 'block'}} isLoading={true}/>
+                    </div>
+                }
 
-                            horzZoomToFitIds={this.horzZoomToFitIds}
-                            distinguishMutationType={this.distinguishMutationType}
-                            distinguishDrivers={this.distinguishDrivers}
-                            sortConfig={this.sortConfig}
-                            showClinicalTrackLegends={this.showClinicalTrackLegends}
-                            showWhitespaceBetweenColumns={this.showWhitespaceBetweenColumns}
-                            showMinimap={this.showMinimap}
+                <div className={classNames('oncoprintContainer', { fadeIn: !this.isHidden })}
+                     onMouseEnter={this.onMouseEnter}
+                     onMouseLeave={this.onMouseLeave}
+                >
 
-                            onMinimapClose={this.onMinimapClose}
-                            onDeleteClinicalTrack={this.onDeleteClinicalTrack}
-                            onTrackSortDirectionChange={this.onTrackSortDirectionChange}
+                    {this.caseSetInfo}
+
+                    {(this.oncoprint && !this.oncoprint.webgl_unavailable) &&
+                    (<FadeInteraction showByDefault={true} show={this.mouseInsideBounds}>
+                        <OncoprintControls
+                            handlers={this.controlsHandlers}
+                            state={this.controlsState}
                         />
+                    </FadeInteraction>)}
+
+                    <div style={{position:"relative"}} >
+                        <div>
+                            {this.alterationInfo}
+                            <Oncoprint
+                                oncoprintRef={this.oncoprintRef}
+                                clinicalTracks={this.clinicalTracks.result}
+                                geneticTracks={this.geneticTracks.result}
+                                genesetHeatmapTracks={this.genesetHeatmapTracks.result}
+                                heatmapTracks={this.heatmapTracks.result}
+                                divId={this.props.divId}
+                                width={1050}
+                                suppressRendering={this.isLoading}
+                                onReleaseRendering={this.onReleaseRendering}
+                                hiddenIds={!this.showUnalteredColumns ? this.unalteredKeys.result : undefined}
+
+                                horzZoomToFitIds={this.horzZoomToFitIds}
+                                distinguishMutationType={this.distinguishMutationType}
+                                distinguishDrivers={this.distinguishDrivers}
+                                sortConfig={this.sortConfig}
+                                showClinicalTrackLegends={this.showClinicalTrackLegends}
+                                showWhitespaceBetweenColumns={this.showWhitespaceBetweenColumns}
+                                showMinimap={this.showMinimap}
+
+                                onMinimapClose={this.onMinimapClose}
+                                onDeleteClinicalTrack={this.onDeleteClinicalTrack}
+                                onTrackSortDirectionChange={this.onTrackSortDirectionChange}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
