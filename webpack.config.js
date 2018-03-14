@@ -277,7 +277,7 @@ var config = {
         quiet:false,
         lazy:false,
         publicPath:'/',
-        https:false,
+        https:true,
         host:'localhost',
         headers: {"Access-Control-Allow-Origin": "*"},
         stats:'errors-only'

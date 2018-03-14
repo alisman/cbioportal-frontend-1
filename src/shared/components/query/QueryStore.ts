@@ -1145,6 +1145,7 @@ export class QueryStore
         invoke: () => {
             let maxY = 1;
             const tableData = this.volcanoPlotTableData.result!;
+            var start = performance.now();
             tableData.map(({representativePvalue}) => {
                 for (const tableDatum of tableData) {
                     const yValue = -(Math.log(tableDatum.representativePvalue)/Math.log(10));
@@ -1153,6 +1154,7 @@ export class QueryStore
                     }
                 }
             });
+            console.log("how long", performance.now()-start);
             return Promise.resolve(maxY);
          }
     });

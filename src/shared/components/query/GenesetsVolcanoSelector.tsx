@@ -147,8 +147,8 @@ export default class GenesetsVolcanoSelector extends QueryStoreComponent<Geneset
                 />
                 </span>
                     <LoadingIndicator isLoading={!(this.store.volcanoPlotGraphData.isComplete && this.store.maxYVolcanoPlot.isComplete)} />
-                {  (this.store.volcanoPlotGraphData.isComplete) && (this.store.maxYVolcanoPlot.isComplete) 
-                    && (this.props.plotData) && (this.props.maxY) && (
+                { (1 > 2) && (this.store.volcanoPlotGraphData.isComplete) && (this.store.maxYVolcanoPlot.isComplete)
+                    && (this.props.plotData) && (this.props.maxY) && (console.log("redering chart")===undefined) && (
                 <VictoryChart
                     theme={VictoryTheme.material}
                     width={510}
@@ -215,7 +215,7 @@ export default class GenesetsVolcanoSelector extends QueryStoreComponent<Geneset
                 </div>
                 <div style={{float: "right", maxHeight: "356.5px", overflowY: "scroll", width: "650px"}}>
                 <LoadingIndicator isLoading={!(this.store.volcanoPlotTableData.isComplete && this.props.data)} />
-                {  (this.store.volcanoPlotTableData.isComplete) && (this.props.data) && (
+                {  (1 >2) && (this.store.volcanoPlotTableData.isComplete) && (this.props.data) && (
                 <GenesetsVolcanoTable
                     itemsName="genesets"
                     initItemsPerPage={10}

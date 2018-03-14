@@ -135,16 +135,20 @@ export default class GenesetsSelector extends QueryStoreComponent<GenesetsSelect
                     <Modal.Title>Select Gene Sets From Volcano Plot</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                    <GenesetsVolcanoSelector
-                        initialSelection={this.store.genesetIds}
-                        data={this.store.volcanoPlotTableData.result}
-                        plotData={this.store.volcanoPlotGraphData.result}
-                        maxY={this.store.maxYVolcanoPlot.result}
-                        onSelect={map_genesets_selected => {
-                            this.store.addToGenesetSelection(map_genesets_selected);
-                            this.store.showGenesetsVolcanoPopup = false;
-                        }}
-                    />
+
+                            <div>{this.store.volcanoPlotTableData.status}</div>
+                            <div>{this.store.volcanoPlotGraphData.status}</div>
+                            <div>{this.store.maxYVolcanoPlot.status}</div>
+                    {/*<GenesetsVolcanoSelector*/}
+                        {/*initialSelection={this.store.genesetIds}*/}
+                        {/*data={this.store.volcanoPlotTableData.result}*/}
+                        {/*plotData={this.store.volcanoPlotGraphData.result}*/}
+                        {/*maxY={this.store.maxYVolcanoPlot.result}*/}
+                        {/*onSelect={map_genesets_selected => {*/}
+                            {/*this.store.addToGenesetSelection(map_genesets_selected);*/}
+                            {/*this.store.showGenesetsVolcanoPopup = false;*/}
+                        {/*}}*/}
+                    {/*/>*/}
                     </Modal.Body>
                     </Modal>
                     
