@@ -19,6 +19,7 @@ import ResultsViewPage from 'bundle-loader?lazy!babel-loader!./pages/resultsView
 import HomePage from 'bundle-loader?lazy!babel-loader!./pages/home/HomePage';
 import TestimonialsPage from 'pages/staticPages/testimonialsPage/TestimonialsPage';
 import DatasetPage from 'bundle-loader?lazy!babel-loader!./pages/datasetView/DatasetPage';
+import TestPage from 'bundle-loader?lazy!babel-loader!./pages/adam/TestPage';
 import './globalComponents';
 
 // accepts bundle-loader's deferred loader function and defers execution of route's render
@@ -36,7 +37,7 @@ function lazyLoadComponent(loader) {
     };
 };
 
-var defaultRoute = window.defaultRoute || '/home';
+var defaultRoute = window.defaultRoute || '/test';
 
 var restoreRoute = inject("routing")(restoreRouteAfterRedirect);
 
@@ -56,6 +57,7 @@ export const makeRoutes = (routing) => {
         <Route path="/testimonials" component={TestimonialsPage}/>
         <Route path="/blank" component={getBlankPage}/>
         <Route path="/results" getComponent={lazyLoadComponent(ResultsViewPage)} />
+        <Route path="/test" getComponent={lazyLoadComponent(TestPage)} />
         <IndexRedirect to={defaultRoute}/>
     </Route>)
 };
