@@ -11,10 +11,15 @@ import {IBaseScatterPlotData} from "../../../shared/components/plots/ScatterPlot
 import {getSampleViewUrl} from "../../../shared/api/urls";
 import _ from "lodash";
 import * as React from "react";
-import {getSimplifiedMutationType, SimplifiedMutationType} from "../../../shared/lib/oql/accessors";
-import {selectDisplayValue} from "../../../shared/components/oncoprint/DataUtils";
+import {
+    getOncoprintMutationType, OncoprintMutationType,
+    selectDisplayValue
+} from "../../../shared/components/oncoprint/DataUtils";
 import {stringListToIndexSet} from "../../../shared/lib/StringUtils";
-import {MUT_COLOR_FUSION} from "../../../shared/components/oncoprint/geneticrules";
+import {
+    MUT_COLOR_FUSION, MUT_COLOR_INFRAME, MUT_COLOR_INFRAME_PASSENGER,
+    MUT_COLOR_MISSENSE, MUT_COLOR_MISSENSE_PASSENGER, MUT_COLOR_PROMOTER, MUT_COLOR_TRUNC, MUT_COLOR_TRUNC_PASSENGER
+} from "../../../shared/components/oncoprint/geneticrules";
 import {CoverageInformation} from "../ResultsViewPageStoreUtils";
 import {IBoxScatterPlotData} from "../../../shared/components/plots/BoxScatterPlot";
 import {AlterationTypeConstants} from "../ResultsViewPageStore";
@@ -82,7 +87,7 @@ export interface IScatterPlotSampleData {
     sampleId:string;
     studyId:string;
     dispCna?:NumericGeneMolecularData;
-    dispMutationType?:SimplifiedMutationType;
+    dispMutationType?:OncoprintMutationType;
     dispMutationSummary?:MutationSummary;
     profiledCna?:boolean;
     profiledMutations?:boolean;
@@ -213,7 +218,7 @@ function scatterPlotMutationLegendData(
         _.chain(mutationLegendOrder)
         .filter(type=>!!uniqueMutations[type])
         .map(type=>{
-            const appearance = simplifiedMutationTypeToAppearance[type as SimplifiedMutationType];
+            const appearance = oncoprintMutationTypeToAppearance[type as OncoprintMutationType];
             return {
                 name: appearance.legendLabel,
                 symbol: {
@@ -471,61 +476,37 @@ export function getAxisDescription(
     return ret;
 }
 
-const simplifiedMutationTypeToAppearance:{[type in SimplifiedMutationType]:{symbol:string, fill:string, stroke:string, legendLabel:string}}
+const oncoprintMutationTypeToAppearance:{[type in OncoprintMutationType]:{symbol:string, fill:string, stroke:string, legendLabel:string}}
 = {
-    "frameshift":{
-        symbol : "triangleDown",
-        fill : "#1C1C1C",
-        stroke : "#B40404",
-        legendLabel : "Frameshift"
-    },
-    "nonsense":{
-        symbol : "diamond",
-        fill : "#1C1C1C",
-        stroke : "#B40404",
-        legendLabel : "Nonsense"
-    },
-    "splice":{
-        symbol : "triangleUp",
-        fill : "#A4A4A4",
-        stroke : "#B40404",
-        legendLabel : "Splice"
-    },
     "inframe": {
-        symbol : "square",
-        fill : "#DF7401",
-        stroke : "#B40404",
+        symbol : "circle",
+        fill : MUT_COLOR_INFRAME_PASSENGER,
+        stroke : "#000000",
         legendLabel : "Inframe"
-    },
-    "nonstart":{
-        symbol : "plus",
-        fill : "#DF7401",
-        stroke : "#B40404",
-        legendLabel : "Nonstart"
-    },
-    "nonstop":{
-        symbol : "triangleUp",
-        fill : "#1C1C1C",
-        stroke : "#B40404",
-        legendLabel : "Nonstop"
     },
     "missense":{
         symbol : "circle",
-        fill : "#DF7401",
-        stroke : "#B40404",
+        fill : MUT_COLOR_MISSENSE_PASSENGER,
+        stroke : "#000000",
         legendLabel : "Missense"
     },
-    "other":{
-        symbol: "square",
-        fill : "#1C1C1C",
-        stroke : "#B40404",
-        legendLabel : "Other"
-    },
     "fusion":{
-        symbol: "star",
+        symbol: "circle",
         fill: MUT_COLOR_FUSION,
         stroke: "#000000",
         legendLabel: "Fusion"
+    },
+    "trunc":{
+        symbol: "circle",
+        fill: MUT_COLOR_TRUNC_PASSENGER,
+        stroke: "#000000",
+        legendLabel: "Truncating"
+    },
+    "promoter":{
+        symbol: "circle",
+        fill: MUT_COLOR_PROMOTER,
+        stroke: "#000000",
+        legendLabel: "Promoter"
     }
 };
 
@@ -535,7 +516,7 @@ const notProfiledAppearance = {
     stroke: "d3d3d3", // TODO: right grey?
 };
 
-const mutationLegendOrder = ["fusion", "frameshift", "nonsense", "splice", "inframe", "nonstart", "nonstop", "missense", "other"];
+const mutationLegendOrder = ["fusion", "promoter", "trunc", "inframe", "missense"];
 const mutationRenderPriority = stringListToIndexSet(mutationLegendOrder);
 
 export const noMutationAppearance = {
@@ -562,7 +543,7 @@ const mutationSummaryToAppearance = {
         legendLabel: "Both mutated"
     }
 };
-const mutationSummaryLegendOrder = [MutationSummary.Neither, MutationSummary.One, MutationSummary.Both];
+const mutationSummaryLegendOrder = [MutationSummary.Both, MutationSummary.One, MutationSummary.Neither];
 
 const cnaToAppearance = {
     "-2":{
@@ -620,7 +601,7 @@ export function makeScatterPlotPointAppearance(
                     } else if (!d.dispMutationType) {
                         return noMutationAppearance;
                     } else {
-                        return simplifiedMutationTypeToAppearance[d.dispMutationType];
+                        return oncoprintMutationTypeToAppearance[d.dispMutationType];
                     }
                 };
             }
@@ -780,15 +761,15 @@ export function makeScatterPlotData(
                 }
             }
         }
-        let dispMutationType:SimplifiedMutationType | undefined = undefined;
+        let dispMutationType:OncoprintMutationType | undefined = undefined;
         const sampleMutations:Mutation[] | undefined = mutationsMap[d.uniqueSampleKey];
         if (sampleMutations && sampleMutations.length) {
             const counts =
                 _.chain(sampleMutations)
-                .groupBy(mutation=>getSimplifiedMutationType(mutation.mutationType))
+                .groupBy(mutation=>getOncoprintMutationType(mutation))
                 .mapValues(muts=>muts.length)
                 .value();
-            dispMutationType = selectDisplayValue(counts, mutationRenderPriority) as SimplifiedMutationType;
+            dispMutationType = selectDisplayValue(counts, mutationRenderPriority) as OncoprintMutationType;
         }
         const sampleCoverageInfo = coverageInformation[d.uniqueSampleKey];
         let profiledMutations = true;
