@@ -23,13 +23,13 @@ import ScatterPlot from "shared/components/plots/ScatterPlot";
 import TablePlot from "shared/components/plots/TablePlot";
 import LoadingIndicator from "shared/components/loadingIndicator/LoadingIndicator";
 import InfoIcon from "../../../shared/components/InfoIcon";
-import {bind} from "bind-decorator";
 import {remoteData} from "../../../shared/api/remoteData";
 import {MobxPromise} from "mobxpromise";
 import BoxScatterPlot, {IBoxScatterPlotData} from "../../../shared/components/plots/BoxScatterPlot";
 import DownloadControls from "../../../shared/components/DownloadControls";
 import DefaultTooltip from "../../../shared/components/defaultTooltip/DefaultTooltip";
 import setWindowVariable from "../../../shared/lib/setWindowVariable";
+import autobind from "autobind-decorator";
 
 enum EventKey {
     horz_molecularProfile,
@@ -96,7 +96,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
     @observable searchCase:string = "";
     @observable searchMutation:string = "";
 
-    @bind
+    @autobind
     private svgRef(svg:SVGElement|null) {
         this.svg = svg;
     }
@@ -136,32 +136,10 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.searchMutationInput = "";
         this.viewType = ViewType.MutationType;
 
-        this.controls = this.controls.bind(this);
-        this.plot = this.plot.bind(this);
-        this.onInputClick = this.onInputClick.bind(this);
-        this.getHorizontalAxisMenu = this.getHorizontalAxisMenu.bind(this);
-        this.getVerticalAxisMenu = this.getVerticalAxisMenu.bind(this);
-        this.getUtilitiesMenu = this.getUtilitiesMenu.bind(this);
-        this.setSearchCaseInput = this.setSearchCaseInput.bind(this);
-        this.setSearchMutationInput = this.setSearchMutationInput.bind(this);
-        this.onHorizontalAxisGeneLockClick = this.onHorizontalAxisGeneLockClick.bind(this);
-        this.onVerticalAxisGeneLockClick = this.onVerticalAxisGeneLockClick.bind(this);
-        this.onVerticalAxisGeneSelect = this.onVerticalAxisGeneSelect.bind(this);
-        this.onHorizontalAxisGeneSelect = this.onHorizontalAxisGeneSelect.bind(this);
-        this.onVerticalAxisProfileTypeSelect = this.onVerticalAxisProfileTypeSelect.bind(this);
-        this.onHorizontalAxisProfileTypeSelect = this.onHorizontalAxisProfileTypeSelect.bind(this);
-        this.onVerticalAxisProfileIdSelect = this.onVerticalAxisProfileIdSelect.bind(this);
-        this.onHorizontalAxisProfileIdSelect = this.onHorizontalAxisProfileIdSelect.bind(this);
-        this.onVerticalAxisClinicalAttributeSelect = this.onVerticalAxisClinicalAttributeSelect.bind(this);
-        this.onHorizontalAxisClinicalAttributeSelect = this.onHorizontalAxisClinicalAttributeSelect.bind(this);
-        this.swapHorzVertSelections = this.swapHorzVertSelections.bind(this);
-        this.executeSearchCase = this.executeSearchCase.bind(this);
-        this.executeSearchMutation = this.executeSearchMutation.bind(this);
-
         setWindowVariable("resultsViewPlotsTab", this); // for e2e testing
     }
 
-    @bind
+    @autobind
     private getSvg() {
         return this.svg;
     }
@@ -189,8 +167,8 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 this._axisType = a;
             },
             get entrezGeneId() {
-                if (this._entrezGeneId === undefined && self.geneOptions.length) {
-                    return self.geneOptions[0].value;
+                if (this._entrezGeneId === undefined && self.geneOptions.isComplete && self.geneOptions.result.length) {
+                    return self.geneOptions.result[0].value;
                 } else {
                     return this._entrezGeneId;
                 }
@@ -246,6 +224,8 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         });
     }
 
+    @autobind
+    @action
     private onInputClick(event:React.MouseEvent<HTMLInputElement>) {
         switch (parseInt((event.target as HTMLInputElement).value, 10)) {
             case EventKey.horz_molecularProfile:
@@ -275,30 +255,40 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
+    @autobind
+    @action
     private setSearchCaseInput(e:any) {
         this.searchCaseInput = e.target.value;
         clearTimeout(this.searchCaseTimeout);
         this.searchCaseTimeout = setTimeout(()=>this.executeSearchCase(this.searchCaseInput), searchInputTimeoutMs);
     }
 
+    @autobind
+    @action
     private setSearchMutationInput(e:any) {
         this.searchMutationInput = e.target.value;
         clearTimeout(this.searchMutationTimeout);
         this.searchMutationTimeout = setTimeout(()=>this.executeSearchMutation(this.searchMutationInput), searchInputTimeoutMs);
     }
 
+    @autobind
+    @action
     public executeSearchCase(caseId:string) {
         this.searchCase = caseId;
     }
 
+    @autobind
+    @action
     public executeSearchMutation(proteinChange:string) {
         this.searchMutation = proteinChange;
     }
 
+    @autobind
     private getHorizontalAxisMenu() {
         return this.getAxisMenu(false);
     }
 
+    @autobind
     private getVerticalAxisMenu() {
         return this.getAxisMenu(true);
     }
@@ -313,10 +303,12 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
+    @autobind
     private onVerticalAxisGeneLockClick() {
         this.onGeneLockClick(true);
     }
 
+    @autobind
     private onHorizontalAxisGeneLockClick() {
         this.onGeneLockClick(false);
     }
@@ -338,21 +330,24 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
+    @autobind
     private onVerticalAxisGeneSelect(option:any) {
         this.onGeneSelect(true, option.value);
     }
 
+    @autobind
     private onHorizontalAxisGeneSelect(option:any) {
         this.onGeneSelect(false, option.value);
     }
 
-    @computed get geneOptions() {
-        if (this.props.store.genes.isComplete) {
-            return this.props.store.genes.result.map(gene=>({ value: gene.entrezGeneId, label: gene.hugoGeneSymbol }));
-        } else {
-            return [];
+    readonly geneOptions = remoteData({
+        await:()=>[this.props.store.genes],
+        invoke:()=>{
+            return Promise.resolve(
+                this.props.store.genes.result!.map(gene=>({ value: gene.entrezGeneId, label: gene.hugoGeneSymbol }))
+            );
         }
-    }
+    });
 
     @computed get clinicalAttributeIdToClinicalAttribute():{[clinicalAttributeId:string]:ClinicalAttribute} {
         if (this.props.store.clinicalAttributes.isComplete) {
@@ -403,30 +398,43 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
+    @autobind
+    @action
     private onVerticalAxisProfileTypeSelect(option:any) {
         this.vertSelection.molecularProfileType = option.value;
     }
 
+    @autobind
+    @action
     public onHorizontalAxisProfileTypeSelect(option:any) {
         this.horzSelection.molecularProfileType = option.value;
     }
 
+    @autobind
+    @action
     private onVerticalAxisProfileIdSelect(option:any) {
         this.vertSelection.molecularProfileId = option.value;
     }
 
+    @autobind
+    @action
     public onHorizontalAxisProfileIdSelect(option:any) {
         this.horzSelection.molecularProfileId = option.value;
     }
 
+    @autobind
+    @action
     private onVerticalAxisClinicalAttributeSelect(option:any) {
         this.vertSelection.clinicalAttributeId = option.value;
     }
 
+    @autobind
+    @action
     public onHorizontalAxisClinicalAttributeSelect(option:any) {
         this.horzSelection.clinicalAttributeId = option.value;
     }
 
+    @autobind
     @action
     private swapHorzVertSelections() {
         for (const key of (Object.keys(this.horzSelection) as (keyof AxisMenuSelection)[])) {
@@ -610,7 +618,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
-    @bind
+    @autobind
     private scatterPlotTooltip(d:IScatterPlotData) {
         return scatterPlotTooltip(d, this.props.store.entrezGeneIdToGene);
     }
@@ -625,7 +633,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
-    @bind
+    @autobind
     private scatterPlotStroke(d:IScatterPlotSampleData) {
         return this.scatterPlotAppearance(d).stroke;
     }
@@ -696,12 +704,14 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                         name={`${vertical ? "v" : "h"}-gene-selector`}
                                         value={axisSelection.entrezGeneId}
                                         onChange={vertical ? this.onVerticalAxisGeneSelect : this.onHorizontalAxisGeneSelect}
-                                        options={this.geneOptions}
+                                        isLoading={this.geneOptions.isPending}
+                                        options={this.geneOptions.isComplete ? this.geneOptions.result : []}
                                         clearable={false}
                                         searchable={false}
                                     />
                                 </div>
                                 <div style={{marginLeft:7, display:"inline"}}>
+                                    {/* this parent div, and the div inside <DefaultTooltip>, are necessary because of issue with <DefaultTooltip> placement */}
                                     <DefaultTooltip
                                         placement="right"
                                         overlay={<span>{this.geneLock ? "Gene selection synchronized in both axes" : "Gene selections independent in each axis"}</span>}
@@ -784,6 +794,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         );
     }
 
+    @autobind
     private getUtilitiesMenu() {
         return (
             <div>
@@ -847,6 +858,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         );
     }
 
+    @autobind
     private controls() {
         return (
             <div style={{display:"flex", flexDirection:"column"}}>
@@ -1010,6 +1022,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         }
     }
 
+    @autobind
     private plot() {
         if (this.plotType.isPending || this.horzAxisDataPromise.isPending || this.vertAxisDataPromise.isPending) {
             return <LoadingIndicator isLoading={true}/>;

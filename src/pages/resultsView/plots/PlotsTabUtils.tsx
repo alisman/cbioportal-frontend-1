@@ -408,14 +408,18 @@ export function makeAxisDataPromise(
     let ret:MobxPromise<IAxisData> = remoteData(()=>new Promise<IAxisData>(()=>0)); // always isPending
     switch (selection.axisType) {
         case AxisType.clinicalAttribute:
-            const attribute = clinicalAttributeIdToClinicalAttribute[selection.clinicalAttributeId!];
-            ret = makeAxisDataPromise_Clinical(attribute, clinicalDataCache, patientKeyToSamples);
+            if (selection.clinicalAttributeId !== undefined) {
+                const attribute = clinicalAttributeIdToClinicalAttribute[selection.clinicalAttributeId];
+                ret = makeAxisDataPromise_Clinical(attribute, clinicalDataCache, patientKeyToSamples);
+            }
             break;
         case AxisType.molecularProfile:
-            ret = makeAxisDataPromise_Molecular(
-                selection.entrezGeneId!, selection.molecularProfileId!, numericGeneMolecularDataCache,
-                entrezGeneIdToGene, molecularProfileIdToMolecularProfile
-            );
+            if (selection.entrezGeneId !== undefined && selection.molecularProfileId !== undefined) {
+                ret = makeAxisDataPromise_Molecular(
+                    selection.entrezGeneId, selection.molecularProfileId, numericGeneMolecularDataCache,
+                    entrezGeneIdToGene, molecularProfileIdToMolecularProfile
+                );
+            }
             break;
     }
     return ret;
