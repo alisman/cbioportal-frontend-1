@@ -29,6 +29,7 @@ import {MobxPromise} from "mobxpromise";
 import BoxScatterPlot, {IBoxScatterPlotData} from "../../../shared/components/plots/BoxScatterPlot";
 import DownloadControls from "../../../shared/components/DownloadControls";
 import DefaultTooltip from "../../../shared/components/defaultTooltip/DefaultTooltip";
+import setWindowVariable from "../../../shared/lib/setWindowVariable";
 
 enum EventKey {
     horz_molecularProfile,
@@ -156,6 +157,8 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.swapHorzVertSelections = this.swapHorzVertSelections.bind(this);
         this.executeSearchCase = this.executeSearchCase.bind(this);
         this.executeSearchMutation = this.executeSearchMutation.bind(this);
+
+        setWindowVariable("resultsViewPlotsTab", this); // for e2e testing
     }
 
     @bind
@@ -284,11 +287,11 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.searchMutationTimeout = setTimeout(()=>this.executeSearchMutation(this.searchMutationInput), searchInputTimeoutMs);
     }
 
-    private executeSearchCase(caseId:string) {
+    public executeSearchCase(caseId:string) {
         this.searchCase = caseId;
     }
 
-    private executeSearchMutation(proteinChange:string) {
+    public executeSearchMutation(proteinChange:string) {
         this.searchMutation = proteinChange;
     }
 
@@ -319,7 +322,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
     }
 
     @action
-    private onGeneSelect(vertical:boolean, option:any) {
+    public onGeneSelect(vertical:boolean, entrezGeneId:number) {
         let targetSelection;
         let otherSelection;
         if (vertical) {
@@ -329,18 +332,18 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
             targetSelection = this.horzSelection;
             otherSelection = this.vertSelection;
         }
-        targetSelection.entrezGeneId = option.value;
+        targetSelection.entrezGeneId = entrezGeneId;
         if (this.geneLock) {
-            otherSelection.entrezGeneId = option.value;
+            otherSelection.entrezGeneId = entrezGeneId;
         }
     }
 
     private onVerticalAxisGeneSelect(option:any) {
-        this.onGeneSelect(true, option);
+        this.onGeneSelect(true, option.value);
     }
 
     private onHorizontalAxisGeneSelect(option:any) {
-        this.onGeneSelect(false, option);
+        this.onGeneSelect(false, option.value);
     }
 
     @computed get geneOptions() {
@@ -404,7 +407,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.vertSelection.molecularProfileType = option.value;
     }
 
-    private onHorizontalAxisProfileTypeSelect(option:any) {
+    public onHorizontalAxisProfileTypeSelect(option:any) {
         this.horzSelection.molecularProfileType = option.value;
     }
 
@@ -412,7 +415,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.vertSelection.molecularProfileId = option.value;
     }
 
-    private onHorizontalAxisProfileIdSelect(option:any) {
+    public onHorizontalAxisProfileIdSelect(option:any) {
         this.horzSelection.molecularProfileId = option.value;
     }
 
@@ -420,7 +423,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         this.vertSelection.clinicalAttributeId = option.value;
     }
 
-    private onHorizontalAxisClinicalAttributeSelect(option:any) {
+    public onHorizontalAxisClinicalAttributeSelect(option:any) {
         this.horzSelection.clinicalAttributeId = option.value;
     }
 
@@ -657,12 +660,14 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
 
     private getAxisMenu(vertical:boolean) {
         const axisSelection = vertical ? this.vertSelection : this.horzSelection;
+        const dataTestWhichAxis = vertical ? "Vertical" : "Horizontal";
         return (
             <div>
                 <h4>{vertical ? "Vertical" : "Horizontal"} Axis</h4>
                 <div>
                     <div className="radio"><label>
                         <input
+                            data-test={`${dataTestWhichAxis}AxisMolecularProfileRadio`}
                             type="radio"
                             name={vertical ? "vert_molecularProfile" : "horz_molecularProfile"}
                             value={vertical ? EventKey.vert_molecularProfile : EventKey.horz_molecularProfile}
@@ -672,6 +677,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                     </label></div>
                     <div className="radio"><label>
                         <input
+                            data-test={`${dataTestWhichAxis}AxisClinicalAttributeRadio`}
                             type="radio"
                             name={vertical ? "vert_clinicalAttribute" : "horz_clinicalAttribute"}
                             value={vertical ? EventKey.vert_clinicalAttribute : EventKey.horz_clinicalAttribute}
@@ -700,7 +706,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                         placement="right"
                                         overlay={<span>{this.geneLock ? "Gene selection synchronized in both axes" : "Gene selections independent in each axis"}</span>}
                                     >
-                                        <div>
+                                        <div data-test={`${dataTestWhichAxis}AxisGeneLockButton`}>
                                             <LockIcon locked={this.geneLock} className="lockIcon" onClick={vertical ? this.onVerticalAxisGeneLockClick : this.onHorizontalAxisGeneLockClick}/>
                                         </div>
                                     </DefaultTooltip>
@@ -741,6 +747,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                         { logScalePossible(axisSelection) && (
                             <div className="checkbox"><label>
                                 <input
+                                    data-test={`${dataTestWhichAxis}LogCheckbox`}
                                     type="checkbox"
                                     name={vertical ? "vert_logScale" : "vert_logScale"}
                                     value={vertical ? EventKey.vert_logScale : EventKey.horz_logScale}
@@ -849,7 +856,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                     </Observer>
                 </div>
                 <div style={{margin:5}}>
-                    <button onClick={this.swapHorzVertSelections}>Swap Axes</button>
+                    <button data-test="swapHorzVertButton" onClick={this.swapHorzVertSelections}>Swap Axes</button>
                 </div>
                 <div style={{margin:5, padding:10, border: "1px solid #aaaaaa", borderRadius:4}}>
                     <Observer>
@@ -1011,9 +1018,10 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         } else {
             // all complete
             const plotType = this.plotType.result!;
+            let plotElt:any = null;
             switch (plotType) {
                 case PlotType.Table:
-                    return (
+                    plotElt = (
                         <TablePlot
                             svgRef={this.svgRef}
                             horzData={(this.horzAxisDataPromise.result! as IStringAxisData).data}
@@ -1026,9 +1034,10 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                             axisLabelY={this.vertLabel}
                         />
                     );
+                    break;
                 case PlotType.ScatterPlot:
                     if (this.scatterPlotData.isComplete) {
-                        return (
+                        plotElt = (
                             <PlotsTabScatterPlot
                                 svgRef={this.svgRef}
                                 axisLabelX={this.horzLabel}
@@ -1050,6 +1059,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 )}
                             />
                         );
+                        break;
                     } else if (this.scatterPlotData.isError) {
                         return <span>Error loading plot data.</span>;
                     } else {
@@ -1058,7 +1068,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 case PlotType.BoxPlot:
                     if (this.boxPlotData.isComplete) {
                         const horizontal = this.boxPlotData.result.horizontal;
-                        return (
+                        plotElt = (
                             <PlotsTabBoxPlot
                                 svgRef={this.svgRef}
                                 boxWidth={this.boxPlotBoxWidth}
@@ -1080,6 +1090,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 )}
                             />
                         );
+                        break;
                     } else if (this.boxPlotData.isError) {
                         return <span>Error loading plot data.</span>;
                     } else {
@@ -1088,12 +1099,17 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 default:
                     return <span>Not implemented yet</span>
             }
+            return (
+                <div data-test="PlotsTabPlotDiv">
+                    {plotElt}
+                </div>
+            );
         }
     }
 
     public render() {
         return (
-            <div style={{display:"flex", flexDirection:"row", maxWidth:"inherit"}}>
+            <div style={{display:"flex", flexDirection:"row", maxWidth:"inherit"}} data-test="PlotsTabEntireDiv">
                 <div style={{width:"25%"}}>
                     <Observer>
                         {this.controls}

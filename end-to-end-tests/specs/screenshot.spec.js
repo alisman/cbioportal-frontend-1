@@ -39,9 +39,7 @@ function runResultsTestSuite(prefix){
 
     it(`${prefix} plots tab`, function(){
         browser.click("[href='#plots']");
-        browser.waitForExist('#plots-box svg',10000);
-        var res = browser.checkElement('#plots', { hide:['.qtip'], misMatchTolerance:1 });
-        assertScreenShotMatch(res);
+        waitForAndCheckPlotsTab();
     });
 
     it(`${prefix} mutation tab`, function(){
@@ -296,6 +294,83 @@ describe("enrichments tab screenshot tests", function() {
         browser.click('b=MERTK');
         var res = browser.checkElement('#enrichementTabDiv', { hide:['.qtip'] } );
         assertScreenShotMatch(res);
+    });
+});
+
+function waitForAndCheckPlotsTab() {
+    browser.waitForVisible('div[data-test="PlotsTabPlotDiv"]', 10000);
+    var res = browser.checkElement('div[data-test="PlotsTabEntireDiv"]', { hide:['.qtip'] });
+    assertScreenShotMatch(res);
+}
+
+describe("plots tab screenshot tests", function() {
+    before(function() {
+        goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/index.do?cancer_study_id=brca_tcga&Z_SCORE_THRESHOLD=2&RPPA_SCORE_THRESHOLD=2&data_priority=0&case_set_id=brca_tcga_cnaseq&gene_list=TP53%2520MDM2&geneset_list=+&tab_index=tab_visualize&Action=Submit&genetic_profile_ids_PROFILE_MUTATION_EXTENDED=brca_tcga_mutations&genetic_profile_ids_PROFILE_COPY_NUMBER_ALTERATION=brca_tcga_gistic#plots`);
+    });
+    it("molecular vs molecular same gene", function() {
+        waitForAndCheckPlotsTab();
+    });
+    it("molecular vs molecular same gene changed gene", function() {
+        browser.execute(function() { resultsViewPlotsTab.onGeneSelect(true, 4193); });
+        waitForAndCheckPlotsTab();
+    });
+    it("molecular vs molecular different genes", function() {
+        browser.click('[data-test="HorizontalAxisGeneLockButton"]');
+        browser.execute(function() { resultsViewPlotsTab.onGeneSelect(false, 7157); });
+        waitForAndCheckPlotsTab();
+    });
+    it("molecular vs molecular different genes different profiles", function() {
+        browser.execute(function() { resultsViewPlotsTab.onHorizontalAxisProfileIdSelect({ value: "brca_tcga_rna_seq_v2_mrna" }); });
+        waitForAndCheckPlotsTab();
+    });
+    it("molecular vs molecular swapped axes", function() {
+        browser.click('[data-test="swapHorzVertButton"]');
+        waitForAndCheckPlotsTab();
+    });
+    it("search case id", function() {
+        browser.execute(function() { resultsViewPlotsTab.executeSearchCase("TCGA-E2"); });
+        waitForAndCheckPlotsTab();
+    });
+    it("search case id and mutation", function() {
+        browser.execute(function() { resultsViewPlotsTab.executeSearchMutation("I195T"); });
+        waitForAndCheckPlotsTab();
+    });
+    it("search mutation", function() {
+        browser.execute(function() { resultsViewPlotsTab.executeSearchCase(""); });
+        waitForAndCheckPlotsTab();
+    });
+    it("log scale off", function() {
+        browser.click('input[data-test="VerticalLogCheckbox"]');
+        waitForAndCheckPlotsTab();
+    });
+    it("clinical vs molecular", function() {
+        browser.click('input[data-test="HorizontalAxisClinicalAttributeRadio"]');
+        waitForAndCheckPlotsTab();
+    });
+    it("clinical vs molecular boxplot", function() {
+        browser.execute(function() { resultsViewPlotsTab.onHorizontalAxisClinicalAttributeSelect({ value: "AJCC_PATHOLOGIC_TUMOR_STAGE" }); });
+        waitForAndCheckPlotsTab();
+    });
+    it("molecular vs clinical boxplot, mutation search off", function() {
+        browser.execute(function() { resultsViewPlotsTab.executeSearchMutation(""); });
+        browser.click('[data-test="swapHorzVertButton"]');
+        waitForAndCheckPlotsTab();
+    });
+    it("clinical vs clinical boxplot", function() {
+        browser.click('input[data-test="HorizontalAxisClinicalAttributeRadio"]');
+        waitForAndCheckPlotsTab();
+    });
+    it("search case id in clinical vs clinical boxplot", function() {
+        browser.execute(function() { resultsViewPlotsTab.executeSearchCase("TCGA-B6"); });
+        waitForAndCheckPlotsTab();
+    });
+    it("clinical vs clinical table plot", function() {
+        browser.execute(function() { resultsViewPlotsTab.onHorizontalAxisClinicalAttributeSelect({ value: "AJCC_TUMOR_PATHOLOGIC_PT" }); });
+        waitForAndCheckPlotsTab();
+    });
+    it("copy number vs clinical table plot", function() {
+        browser.execute(function() { resultsViewPlotsTab.onHorizontalAxisProfileTypeSelect({ value: "COPY_NUMBER_ALTERATION" }); });
+        waitForAndCheckPlotsTab();
     });
 });
 
