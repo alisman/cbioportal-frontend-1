@@ -109,29 +109,6 @@ export function isNumberData(d:IAxisData): d is INumberAxisData {
     return d.datatype === "number";
 }
 
-export function makeCNAPromise(
-    entrezGeneId: number,
-    studies: MobxPromise<CancerStudy[]>,
-    molecularProfileIdToMolecularProfile:MobxPromise<{[molecularProfileId:string]:MolecularProfile}>,
-    numericGeneMolecularDataCache:MobxPromiseCache<{entrezGeneId:number, molecularProfileId:string}, NumericGeneMolecularData[]>
-) {
-    let promises:MobxPromise<NumericGeneMolecularData[]>[] = [];
-    return remoteData({
-        await:()=>{
-            if (!molecularProfileIdToMolecularProfile.isComplete || !studies.isComplete) {
-                return [molecularProfileIdToMolecularProfile, studies];
-            } else {
-                const profileIds = studies.result!.map(s=>`${s.studyId}_gistic`).filter(id=>!!molecularProfileIdToMolecularProfile.result![id]);
-                promises = numericGeneMolecularDataCache.getAll(
-                    profileIds.map(molecularProfileId=>({entrezGeneId, molecularProfileId}))
-                );
-                return promises;
-            }
-        },
-        invoke:()=>Promise.resolve(_.flatten(promises.map(p=>p.result!)))
-    });
-}
-
 export function scatterPlotLegendData(
     data:IScatterPlotSampleData[],
     viewType:ViewType,
@@ -857,4 +834,31 @@ function makeScatterPlotData_profiledReport(
         ret[gpData.molecularProfileId] = true;
     }
     return ret;
+}
+
+export function getCnaQueries(
+    entrezGeneId:number,
+    studyToMolecularProfileDiscrete:{[studyId:string]:MolecularProfile}
+) {
+    return _.values(studyToMolecularProfileDiscrete)
+        .map(p=>({molecularProfileId: p.molecularProfileId, entrezGeneId}));
+}
+
+export function getMutationQueries(
+    horzSelection:AxisMenuSelection,
+    vertSelection:AxisMenuSelection
+) {
+    const queries:{entrezGeneId:number}[] = [];
+    let horzEntrezGeneId:number | undefined = undefined;
+    if (horzSelection.axisType === AxisType.molecularProfile &&
+            horzSelection.entrezGeneId !== undefined) {
+        horzEntrezGeneId = horzSelection.entrezGeneId;
+        queries.push({ entrezGeneId: horzEntrezGeneId });
+    }
+    if (vertSelection.axisType === AxisType.molecularProfile &&
+            vertSelection.entrezGeneId !== undefined &&
+            vertSelection.entrezGeneId !== horzEntrezGeneId) {
+        queries.push({ entrezGeneId: vertSelection.entrezGeneId });
+    }
+    return queries;
 }

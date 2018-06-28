@@ -9,10 +9,11 @@ import ReactSelect from "react-select";
 import _ from "lodash";
 import {
     getAxisDescription,
-    getAxisLabel, IScatterPlotData, isNumberData, isStringData, logScalePossible, makeCNAPromise,
+    getAxisLabel, IScatterPlotData, isNumberData, isStringData, logScalePossible,
     makeAxisDataPromise, makeScatterPlotData, makeScatterPlotPointAppearance, molecularProfileTypeDisplayOrder,
     molecularProfileTypeToDisplayType, scatterPlotTooltip, scatterPlotLegendData, IStringAxisData, INumberAxisData,
-    makeBoxScatterPlotData, IScatterPlotSampleData, noMutationAppearance, IBoxScatterPlotPoint, boxPlotTooltip
+    makeBoxScatterPlotData, IScatterPlotSampleData, noMutationAppearance, IBoxScatterPlotPoint, boxPlotTooltip,
+    getCnaQueries, getMutationQueries
 } from "./PlotsTabUtils";
 import {
     ClinicalAttribute, MolecularProfile, Mutation,
@@ -454,54 +455,54 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
             (this.horzSelection.entrezGeneId === this.vertSelection.entrezGeneId);
     }
 
-    @computed get cnaPromise() {
-        if (this.viewType === ViewType.CopyNumber && this.props.store.studyToMolecularProfileDiscrete) {
-            if (!this.sameGeneInBothAxes) {
-                throw ("Plots tab invariant error: viewType is CopyNumber must mean that both axes are molecularProfile and have the same gene");
-            }
-            const entrezGeneId = this.horzSelection.entrezGeneId!;
-            const queries = _.values(this.props.store.studyToMolecularProfileDiscrete.result)
-                            .map(p=>({molecularProfileId: p.molecularProfileId, entrezGeneId}));
-            const promises = this.props.store.numericGeneMolecularDataCache.getAll(queries);
-            return remoteData({
-                await:()=>promises,
-                invoke: ()=>Promise.resolve(_.flatten(promises.map(p=>p.result!)))
-            });
-        } else {
-            return undefined;
-        }
+    @computed get cnaDataShown() {
+        return this.cnaDataExists && this.viewType === ViewType.CopyNumber;
     }
 
-    @computed get mutationPromise() {
-        const promises:MobxPromise<Mutation[]>[] = [];
-        const fetching:{[entrezGeneId:number]:boolean} = {};
-        if (
-            this.horzSelection.axisType === AxisType.molecularProfile &&
-            this.horzSelection.entrezGeneId !== undefined
-        ) {
-            promises.push(this.props.store.mutationCache.get({
-                entrezGeneId: this.horzSelection.entrezGeneId!
-            }));
-            fetching[this.horzSelection.entrezGeneId!] = true;
+    readonly cnaPromise = remoteData({
+        await:()=>this.props.store.numericGeneMolecularDataCache.await(
+            [this.props.store.studyToMolecularProfileDiscrete],
+            map=>{
+                if (this.cnaDataShown && this.horzSelection.entrezGeneId !== undefined) {
+                    return getCnaQueries(this.horzSelection.entrezGeneId, map);
+                } else {
+                    return [];
+                }
+            }
+        ),
+        invoke:()=>{
+            if (this.cnaDataShown && this.horzSelection.entrezGeneId !== undefined) {
+                const queries = getCnaQueries(
+                    this.horzSelection.entrezGeneId,
+                    this.props.store.studyToMolecularProfileDiscrete.result!
+                );
+                const promises = this.props.store.numericGeneMolecularDataCache.getAll(queries);
+                return Promise.resolve(_.flatten(promises.map(p=>p.result!)));
+            } else {
+                return Promise.resolve(undefined);
+            }
         }
-        if (
-            this.vertSelection.axisType === AxisType.molecularProfile &&
-            this.vertSelection.entrezGeneId !== undefined &&
-            !fetching[this.vertSelection.entrezGeneId]
-        ) {
-            promises.push(this.props.store.mutationCache.get({
-                entrezGeneId: this.vertSelection.entrezGeneId!
-            }));
-        }
-        if (promises.length) {
-            return remoteData({
-                await: ()=>promises,
-                invoke:()=>Promise.resolve(_.flatten(promises.map(x=>x.result!)))
-            });
-        } else {
-            return undefined;
-        }
+    });
+
+    @computed get mutationDataShown() {
+        return this.mutationDataExists &&
+            (this.viewType === ViewType.MutationType || this.viewType === ViewType.MutationSummary);
     }
+
+    readonly mutationPromise = remoteData({
+        await:()=>this.props.store.mutationCache.getAll(
+            getMutationQueries(this.horzSelection, this.vertSelection)
+        ),
+        invoke: ()=>{
+            if (this.mutationDataShown) {
+                return Promise.resolve(_.flatten(this.props.store.mutationCache.getAll(
+                    getMutationQueries(this.horzSelection, this.vertSelection)
+                ).map(p=>p.result!)));
+            } else {
+                return Promise.resolve(undefined);
+            }
+        }
+    });
 
     @computed get horzAxisDataPromise() {
         return makeAxisDataPromise(
@@ -810,7 +811,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 placeholder="Case ID.."
                             />
                         </div>
-                        {this.mutationPromise && (<div>
+                        {this.mutationDataShown && (<div>
                             Search Mutation(s)
                             <FormControl
                                 type="text"
@@ -914,11 +915,11 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 this.props.store.sampleKeyToSample,
                 this.props.store.coverageInformation
             ];
-            if (this.mutationPromise) {
+            if (this.mutationDataShown) {
                 ret.push(this.mutationPromise);
                 ret.push(this.props.store.studyToMutationMolecularProfile);
             }
-            if (this.cnaPromise) {
+            if (this.cnaDataShown) {
                 ret.push(this.cnaPromise);
                 ret.push(this.props.store.studyToMolecularProfileDiscrete);
             }
@@ -936,11 +937,11 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                         vertAxisData,
                         this.props.store.sampleKeyToSample.result!,
                         this.props.store.coverageInformation.result!.samples,
-                        this.mutationPromise ? {
+                        this.mutationDataShown ? {
                             molecularProfileIds: _.values(this.props.store.studyToMutationMolecularProfile.result!).map(p=>p.molecularProfileId),
                             data: this.mutationPromise.result!
                         } : undefined,
-                        this.cnaPromise ? {
+                        this.cnaDataShown ? {
                             molecularProfileIds: _.values(this.props.store.studyToMolecularProfileDiscrete.result!).map(p=>p.molecularProfileId),
                             data: this.cnaPromise.result!
                         }: undefined
@@ -960,11 +961,11 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 this.props.store.sampleKeyToSample,
                 this.props.store.coverageInformation
             ];
-            if (this.mutationPromise) {
+            if (this.mutationDataShown) {
                 ret.push(this.mutationPromise);
                 ret.push(this.props.store.studyToMutationMolecularProfile);
             }
-            if (this.cnaPromise) {
+            if (this.cnaDataShown) {
                 ret.push(this.cnaPromise);
                 ret.push(this.props.store.studyToMolecularProfileDiscrete);
             }
@@ -996,11 +997,11 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                         categoryData, numberData,
                         this.props.store.sampleKeyToSample.result!,
                         this.props.store.coverageInformation.result!.samples,
-                        this.mutationPromise ? {
+                        this.mutationDataShown ? {
                             molecularProfileIds: _.values(this.props.store.studyToMutationMolecularProfile.result!).map(p=>p.molecularProfileId),
                             data: this.mutationPromise.result!
                         } : undefined,
-                        this.cnaPromise ? {
+                        this.cnaDataShown ? {
                             molecularProfileIds: _.values(this.props.store.studyToMolecularProfileDiscrete.result!).map(p=>p.molecularProfileId),
                             data: this.cnaPromise.result!
                         }: undefined
