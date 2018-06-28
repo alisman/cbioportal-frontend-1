@@ -671,7 +671,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
         const axisSelection = vertical ? this.vertSelection : this.horzSelection;
         const dataTestWhichAxis = vertical ? "Vertical" : "Horizontal";
         return (
-            <div>
+            <form>
                 <h4>{vertical ? "Vertical" : "Horizontal"} Axis</h4>
                 <div>
                     <div className="radio"><label>
@@ -697,20 +697,18 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                 </div>
                 {(axisSelection.axisType === AxisType.molecularProfile) && (
                     <div>
-                        <div>
-                            Gene
+                        <div className="form-group">
+                            <label>Gene</label>
                             <div style={{display:"flex", flexDirection:"row"}}>
-                                <div style={{width:"93%"}}>
-                                    <ReactSelect
-                                        name={`${vertical ? "v" : "h"}-gene-selector`}
-                                        value={axisSelection.entrezGeneId}
-                                        onChange={vertical ? this.onVerticalAxisGeneSelect : this.onHorizontalAxisGeneSelect}
-                                        isLoading={this.geneOptions.isPending}
-                                        options={this.geneOptions.isComplete ? this.geneOptions.result : []}
-                                        clearable={false}
-                                        searchable={false}
-                                    />
-                                </div>
+                                <ReactSelect
+                                    name={`${vertical ? "v" : "h"}-gene-selector`}
+                                    value={axisSelection.entrezGeneId}
+                                    onChange={vertical ? this.onVerticalAxisGeneSelect : this.onHorizontalAxisGeneSelect}
+                                    isLoading={this.geneOptions.isPending}
+                                    options={this.geneOptions.isComplete ? this.geneOptions.result : []}
+                                    clearable={false}
+                                    searchable={false}
+                                />
                                 <div style={{marginLeft:7, display:"inline"}}>
                                     {/* this parent div, and the div inside <DefaultTooltip>, are necessary because of issue with <DefaultTooltip> placement */}
                                     <DefaultTooltip
@@ -724,8 +722,8 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            Profile Type
+                        <div className="form-group">
+                            <label>Profile Type</label>
                             <ReactSelect
                                 name={`${vertical ? "v" : "h"}-profile-type-selector`}
                                 value={axisSelection.molecularProfileType}
@@ -735,19 +733,17 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 searchable={false}
                             />
                         </div>
-                        <div>
-                            Profile Name
+                        <div className="form-group">
+                            <label>Profile Name</label>
                             <div style={{display:"flex", flexDirection:"row"}}>
-                                <div style={{width:"93%"}}>
-                                    <ReactSelect
-                                        name={`${vertical ? "v" : "h"}-profile-name-selector`}
-                                        value={axisSelection.molecularProfileId}
-                                        onChange={vertical ? this.onVerticalAxisProfileIdSelect : this.onHorizontalAxisProfileIdSelect}
-                                        options={this.profileNameOptionsByType[axisSelection.molecularProfileType+""] || []}
-                                        clearable={false}
-                                        searchable={false}
-                                    />
-                                </div>
+                                <ReactSelect
+                                    name={`${vertical ? "v" : "h"}-profile-name-selector`}
+                                    value={axisSelection.molecularProfileId}
+                                    onChange={vertical ? this.onVerticalAxisProfileIdSelect : this.onHorizontalAxisProfileIdSelect}
+                                    options={this.profileNameOptionsByType[axisSelection.molecularProfileType+""] || []}
+                                    clearable={false}
+                                    searchable={false}
+                                />
                                 <InfoIcon
                                     tooltip={<span>{vertical ? this.vertDescription : this.horzDescription}</span>}
                                     tooltipPlacement="right"
@@ -773,16 +769,14 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                     <div>
                         Clinical Attribute
                         <div style={{display:"flex", flexDirection:"row"}}>
-                            <div style={{width:"100%"}}>
-                                <ReactSelect
-                                    name={`${vertical ? "v" : "h"}-clinical-attribute-selector`}
-                                    value={axisSelection.clinicalAttributeId}
-                                    onChange={vertical ? this.onVerticalAxisClinicalAttributeSelect : this.onHorizontalAxisClinicalAttributeSelect}
-                                    options={this.clinicalAttributeOptions}
-                                    clearable={false}
-                                    searchable={false}
-                                />
-                            </div>
+                            <ReactSelect
+                                name={`${vertical ? "v" : "h"}-clinical-attribute-selector`}
+                                value={axisSelection.clinicalAttributeId}
+                                onChange={vertical ? this.onVerticalAxisClinicalAttributeSelect : this.onHorizontalAxisClinicalAttributeSelect}
+                                options={this.clinicalAttributeOptions}
+                                clearable={false}
+                                searchable={false}
+                            />
                             <InfoIcon
                                 tooltip={<span>{vertical ? this.vertDescription : this.horzDescription}</span>}
                                 tooltipPlacement="right"
@@ -791,7 +785,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                         </div>
                     </div>
                 )}
-            </div>
+            </form>
         );
     }
 
@@ -799,11 +793,12 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
     private getUtilitiesMenu() {
         return (
             <div>
+                <hr/>
                 <h4>Utilities</h4>
                 <div>
                     {this.plotType.isComplete && this.plotType.result !== PlotType.Table && (<div>
-                        <div>
-                            Search Case(s)
+                        <div className="form-group">
+                            <label>Search Case(s)</label>
                             <FormControl
                                 type="text"
                                 value={this.searchCaseInput}
@@ -811,19 +806,21 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                                 placeholder="Case ID.."
                             />
                         </div>
-                        {this.mutationDataShown && (<div>
-                            Search Mutation(s)
-                            <FormControl
-                                type="text"
-                                value={this.searchMutationInput}
-                                onChange={this.setSearchMutationInput}
-                                placeholder="Protein Change.."
-                            />
-                        </div>)}
+                        {this.mutationDataShown && (
+                            <div className="form-group">
+                                <label>Search Mutation(s)</label>
+                                <FormControl
+                                    type="text"
+                                    value={this.searchMutationInput}
+                                    onChange={this.setSearchMutationInput}
+                                    placeholder="Protein Change.."
+                                />
+                            </div>
+                        )}
                     </div>)}
                     {this.sameGeneInBothAxes && (
                         <div>
-                            View
+                            <label>View</label>
                             <div className="radio"><label>
                                 <input
                                     type="radio"
@@ -846,14 +843,6 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                             </label></div>
                         </div>
                     )}
-                    <div style={{marginTop:10}}>
-                        <DownloadControls
-                            getSvg={this.getSvg}
-                            filename={this.downloadFilename}
-                            buttons={["SVG", "PDF"]}
-                            dontFade={true}
-                        />
-                    </div>
                 </div>
             </div>
         );
@@ -863,20 +852,20 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
     private controls() {
         return (
             <div style={{display:"flex", flexDirection:"column"}}>
-                <div style={{margin:5, padding:10, border: "1px solid #aaaaaa", borderRadius:4}}>
+                <div className="axisBlock">
                     <Observer>
                         {this.getHorizontalAxisMenu}
                     </Observer>
                 </div>
-                <div style={{margin:5}}>
-                    <button data-test="swapHorzVertButton" onClick={this.swapHorzVertSelections}>Swap Axes</button>
+                <div style={{ textAlign:'center'}}>
+                    <button className="btn btn-default" data-test="swapHorzVertButton" onClick={this.swapHorzVertSelections}><i className="fa fa-arrow-up"></i> Swap Axes <i className="fa fa-arrow-down"></i></button>
                 </div>
-                <div style={{margin:5, padding:10, border: "1px solid #aaaaaa", borderRadius:4}}>
+                <div className="axisBlock">
                     <Observer>
                         {this.getVerticalAxisMenu}
                     </Observer>
                 </div>
-                <div style={{margin:5, padding:10, border: "1px solid #aaaaaa", borderRadius:4}}>
+                <div>
                     <Observer>
                         {this.getUtilitiesMenu}
                     </Observer>
@@ -1114,7 +1103,14 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                     return <span>Not implemented yet</span>
             }
             return (
-                <div data-test="PlotsTabPlotDiv">
+                <div data-test="PlotsTabPlotDiv" className="borderedChart posRelative inlineBlock">
+                    <DownloadControls
+                        getSvg={this.getSvg}
+                        filename={this.downloadFilename}
+                        buttons={["SVG", "PDF"]}
+                        dontFade={true}
+                        style={{position:'absolute', right:10, top:10 }}
+                    />
                     {plotElt}
                 </div>
             );
@@ -1123,13 +1119,13 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
 
     public render() {
         return (
-            <div style={{display:"flex", flexDirection:"row", maxWidth:"inherit"}} data-test="PlotsTabEntireDiv">
-                <div style={{width:"25%"}}>
+            <div className={"plotsTab"} style={{display:"flex", flexDirection:"row", maxWidth:"inherit"}} data-test="PlotsTabEntireDiv">
+                <div className="leftColumn">
                     <Observer>
                         {this.controls}
                     </Observer>
                 </div>
-                <div style={{width:"75%", overflow:"auto", maxHeight:750}}>
+                <div style={{overflow:"auto"}}>
                     <Observer>
                         {this.plot}
                     </Observer>
