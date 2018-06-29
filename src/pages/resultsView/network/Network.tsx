@@ -42,7 +42,9 @@ export default class Network extends React.Component<INetworkTabParams, {}> {
             "diffusion": "0"
         };
 
-        return this.baseUrl + "reactapp/network/network.htm?apiHost="+ AppConfig.baseUrl +"&networkParams=" + JSON.stringify(networkParams);
+        const rawGitUrl = "https://cdn.rawgit.com/alisman/cbioportal-frontend/gitNet/src/pages/resultsView/network/network.htm";
+
+        return rawGitUrl + `?fileHost=${AppConfig.frontendUrl}&apiHost=${AppConfig.baseUrl}&networkParams=${JSON.stringify(networkParams)}`;
     }
 
     render(){
