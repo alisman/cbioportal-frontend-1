@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'mobx-react';
-import { hashHistory, browserHistory, createMemoryHistory, Router } from 'react-router';
+import { hashHistory, browserHistory, createMemoryHistory, Router, useRouterHistory } from 'react-router';
+import { createHistory } from 'history'
 import { RouterStore, syncHistoryWithStore  } from 'mobx-react-router';
 import ExtendedRoutingStore from './shared/lib/ExtendedRouterStore';
 //import {QueryStore} from "./shared/components/query/QueryStore";
@@ -25,7 +26,6 @@ import ExtendedRouterStore from "shared/lib/ExtendedRouterStore";
 import superagentCache from 'superagent-cache';
 
 superagentCache(superagent);
-
 
 if (localStorage.localdev === 'true' || localStorage.localdist === 'true') {
     __webpack_public_path__ = "//localhost:3000/"
@@ -88,25 +88,29 @@ _.noConflict();
 const routingStore = new ExtendedRoutingStore();
 
 //determine history type
-let history;
-switch (window.defaultRoute) {
-    case "/patient":
-    case "/spa":
-        // these pages are going to use state of-the-art browser history
-        // when refactoring is done, all pages will use this
-        history = browserHistory;
-        break;
-    case "/study":
-        // these pages are going to use state of-the-art browser history
-        // when refactoring is done, all pages will use this
-        history = browserHistory;
-        break;
-    default:
-        // legacy pages will use memory history so as not to interfere
-        // with old url params
-        history = createMemoryHistory();
-        break;
-}
+// let history;
+// switch (window.defaultRoute) {
+//     case "/patient":
+//     case "/spa":
+//         // these pages are going to use state of-the-art browser history
+//         // when refactoring is done, all pages will use this
+//         history = browserHistory;
+//         break;
+//     case "/study":
+//         // these pages are going to use state of-the-art browser history
+//         // when refactoring is done, all pages will use this
+//         history = browserHistory;
+//         break;
+//     default:
+//         // legacy pages will use memory history so as not to interfere
+//         // with old url params
+//         history = createMemoryHistory();
+//         break;
+// }
+
+const history = useRouterHistory(createHistory)({
+    basename: AppConfig.basePath || ""
+});
 
 const syncedHistory = syncHistoryWithStore(history, routingStore);
 
