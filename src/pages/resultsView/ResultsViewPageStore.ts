@@ -330,6 +330,10 @@ export class ResultsViewPageStore {
         });
     }
 
+    public queryReactionDisposer:any;
+
+    @observable public checkingVirtualStudies = false;
+
     public queryStore: QueryStore;
 
     @observable public urlValidationError: string | null = null;
@@ -339,10 +343,10 @@ export class ResultsViewPageStore {
 
     @observable ajaxErrors: Error[] = [];
 
-
+    @observable _selectedStudyIds: string[];
 
     @observable genesetIds: string[];
-    @observable samplesSpecification: SamplesSpecificationElement[] = [];
+    @observable samplesSpecification: SamplesSpecificationElement[];
 
     @observable sampleListCategory: SampleListCategoryType | undefined;
 
@@ -1248,7 +1252,7 @@ export class ResultsViewPageStore {
 
     readonly studyIds = remoteData({
         invoke: ()=>{
-            return Promise.resolve(this.cohortIdsList.slice());
+            return Promise.resolve(this._selectedStudyIds.slice());
         }
     });
 

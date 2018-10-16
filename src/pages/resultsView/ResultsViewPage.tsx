@@ -29,7 +29,12 @@ import Helmet from "react-helmet";
 import {createQueryStore} from "../home/HomePage";
 import {ServerConfigHelpers} from "../../config/config";
 import {showCustomTab} from "../../shared/lib/customTabs";
-import { buildResultsViewPageTitle} from "./ResultsViewPageStoreUtils";
+import {buildResultsViewPageTitle, getMolecularProfiles} from "./ResultsViewPageStoreUtils";
+import client from "shared/api/cbioportalClientInstance";
+import {getVirtualStudies, updateStoreFromQuery} from "./ResultsViewPageHelpers";
+import {CancerStudy} from "../../shared/api/generated/CBioPortalAPI";
+import sessionServiceClient from "../../shared/api/sessionServiceInstance";
+import LoadingIndicator from "../../shared/components/loadingIndicator/LoadingIndicator";
 
 function initStore() {
 
@@ -39,12 +44,22 @@ function initStore() {
         getBrowserWindow().currentQueryStore = createQueryStore();
     }
 
-    const reaction1 = reaction(
+    let lastQuery:any;
+
+    const queryReactionDisposer = reaction(
         () => {
             return getBrowserWindow().globalStores.routing.query
         },
         (query) => {
 
+            // escape from this if queryies are deeply equal
+            // TODO: see if we can figure out why query is getting changed and
+            // if there's any way to do shallow equality check to avoid this expensive operation
+            if (_.isEqual(lastQuery, query)) {
+                return;
+            } else {
+                lastQuery = query;
+            }
 
             if (!getBrowserWindow().globalStores.routing.location.pathname.includes("/results")) {
                return;
@@ -53,12 +68,9 @@ function initStore() {
             // normalize cancer_study_list this handles legacy sessions/urls where queries with single study had different param name
             const cancer_study_list = query.cancer_study_list || query.cancer_study_id;
 
-            const cancerStudyIds = cancer_study_list.split(",");
+            const cancerStudyIds: string[] = cancer_study_list.split(",");
 
             const oql = decodeURIComponent(query.gene_list);
-
-
-
 
             let samplesSpecification: SamplesSpecificationElement[];
 
@@ -89,7 +101,7 @@ function initStore() {
                             sampleId: undefined
                         };
                     });
-            } else {
+            } else if (query.case_set_id === "all") { // case_set_id IS equal to all
                 samplesSpecification = cancerStudyIds.map((studyId:string)=>{
                     return {
                         studyId,
@@ -97,85 +109,80 @@ function initStore() {
                         sampleId:undefined
                     }
                 });
+            } else {
+                throw("INVALID QUERY");
             }
 
+            // we need to check if any of the queried studies are virtual studies
+            // and if they are, fetch virtual studies to determine their underlying
+            // physical studies and samples
 
+            resultsViewPageStore.checkingVirtualStudies = true;
 
+            getVirtualStudies(cancerStudyIds).then((virtualStudies)=>{
 
-            function getMolecularProfiles(query:any){
-                //if there's only one study, we read profiles from query params and filter out undefined
-                let molecularProfiles = [
-                    query.genetic_profile_ids_PROFILE_MUTATION_EXTENDED,
-                    query.genetic_profile_ids_PROFILE_COPY_NUMBER_ALTERATION,
-                    query.genetic_profile_ids_PROFILE_MRNA_EXPRESSION,
-                    query.genetic_profile_ids_PROFILE_PROTEIN_EXPRESSION,
-                ].filter((profile:string|undefined)=>!!profile);
+                let physicalStudies:string[] = [];
 
-                // append 'genetic_profile_ids' which is sometimes in use
-                molecularProfiles = molecularProfiles.concat(query.genetic_profile_ids || []);
+                if (virtualStudies.length > 0) {
 
-                // filter out duplicates
-                molecularProfiles = _.uniq(molecularProfiles);
+                    //if a study is a virtual study, substitute its physical study ids
+                    const virtualStudiesKeyedById = _.keyBy(virtualStudies,(virtualStudy)=>virtualStudy.id);
+                    cancerStudyIds.forEach((studyId)=>{
+                        if (studyId in virtualStudiesKeyedById) {
+                            const virtualStudy = virtualStudiesKeyedById[studyId];
+                            physicalStudies = physicalStudies.concat(virtualStudy.data.origin);
+                        } else {
+                            physicalStudies.push(studyId);
+                        }
+                    });
 
-                return molecularProfiles;
-            }
+                    // remove specs for virtual studies (since they mean nothing to api)
+                    // and then populate with ids
+                    _.remove(samplesSpecification,(spec)=>spec.studyId in virtualStudiesKeyedById);
 
-            runInAction(() => {
+                    const allVirtualStudySampleSpecs = _.flatMapDeep(virtualStudies.map((virtualStudy)=>{
+                        return virtualStudy.data.studies.map((study)=>{
+                            return study.samples.map((sampleId)=>{
+                                return {
+                                    studyId:study.id,
+                                    sampleListId:undefined,
+                                    sampleId:sampleId
+                                } as SamplesSpecificationElement
+                            })
+                        }) as SamplesSpecificationElement[][];
+                    }));
 
-                if (!resultsViewPageStore.samplesSpecification || !_.isEqual(resultsViewPageStore.samplesSpecification.slice(), samplesSpecification)) {
-                    resultsViewPageStore.samplesSpecification = samplesSpecification;
-                }
+                    // ts not resolving type above and not sure why, so cast it
+                    samplesSpecification = samplesSpecification.concat(allVirtualStudySampleSpecs as SamplesSpecificationElement[]);
 
-                // sometimes the submitted case_set_id is not actually a case_set_id but
-                // a category of case set ids (e.g. selected studies > 1 and case category selected)
-                // in that case, note that on the query
-                if (query.case_set_id && ["w_mut","w_cna","w_mut_cna"].includes(query.case_set_id)) {
-                    if (resultsViewPageStore.sampleListCategory !== query.case_set_id) {
-                        resultsViewPageStore.sampleListCategory = query.case_set_id;
-                    }
+                    // now make sure specs are deeply unique
+                    //samplesSpecification = _.uniqBy(samplesSpecification, _.isEqual);
+
                 } else {
-                    resultsViewPageStore.sampleListCategory = undefined;
+                    physicalStudies = cancerStudyIds;
                 }
 
-                if (query.data_priority !== undefined && parseInt(query.data_priority,10) !== resultsViewPageStore.profileFilter) {
-                    resultsViewPageStore.profileFilter = parseInt(query.data_priority,10);
-                }
+                // it's possible that a virtual study could contain a physical study which is also selected independently
+                // or is also contained by another selected virtual study
+                // make sure physical study collection is unique
+                physicalStudies = _.uniq(physicalStudies);
 
-                // note that this could be zero length if we have multiple studies
-                // in that case we derive default selected profiles
-                const profiles = getMolecularProfiles(query);
-                if (!resultsViewPageStore.selectedMolecularProfileIds || !_.isEqual(resultsViewPageStore.selectedMolecularProfileIds.slice(), profiles)) {
-                    resultsViewPageStore.selectedMolecularProfileIds = profiles;
-                }
+                // fetch summary projection because it's likely to be already used (an in cache) or will be used later
+                runInAction(()=>{
+                    updateStoreFromQuery(resultsViewPageStore, query, samplesSpecification, physicalStudies, oql, cancerStudyIds);
+                });
 
-                if (!_.isEqual(query.RPPA_SCORE_THRESHOLD, resultsViewPageStore.rppaScoreThreshold)) {
-                    resultsViewPageStore.rppaScoreThreshold = parseFloat(query.RPPA_SCORE_THRESHOLD);
-                }
-
-                if (!_.isEqual(query.Z_SCORE_THRESHOLD, resultsViewPageStore.zScoreThreshold)) {
-                    resultsViewPageStore.zScoreThreshold = parseFloat(query.Z_SCORE_THRESHOLD);
-                }
-
-                if (query.geneset_list) {
-                    // we have to trim because for some reason we get a single space from submission
-                    const parsedGeneSetList = query.geneset_list.trim().length ? (query.geneset_list.trim().split(/\s+/)) : [];
-                    if (!_.isEqual(parsedGeneSetList, resultsViewPageStore.genesetIds)) {
-                        resultsViewPageStore.genesetIds = parsedGeneSetList;
-                    }
-                }
-
-                if (!resultsViewPageStore.cohortIdsList || !_.isEqual(resultsViewPageStore.cohortIdsList.slice(), cancerStudyIds)) {
-                    resultsViewPageStore.cohortIdsList = cancerStudyIds;
-                }
-
-                if (resultsViewPageStore.oqlQuery !== oql) {
-                    resultsViewPageStore.oqlQuery = oql;
-                }
+                resultsViewPageStore.checkingVirtualStudies = false;
 
             });
+
+
+
         },
         {fireImmediately: true}
     );
+
+    resultsViewPageStore.queryReactionDisposer = queryReactionDisposer;
 
     return resultsViewPageStore;
 }
@@ -232,6 +239,10 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
     @autobind
     private customTabMountCallback(div:HTMLDivElement,tab:any){
         showCustomTab(div, tab, this.props.routing.location, this.resultsViewPageStore);
+    }
+
+    componentWillUnmount(){
+        this.resultsViewPageStore.queryReactionDisposer();
     }
 
     @computed
@@ -458,20 +469,17 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
         }
     }
 
-    public render() {
-        return (
-            <PageLayout noMargin={true}>
+    @computed get pageContent(){
+        return (<div>
+            {
+                (this.resultsViewPageStore.studies.isComplete) && (
+                    <Helmet>
+                        <title>{buildResultsViewPageTitle(this.resultsViewPageStore.hugoGeneSymbols, this.resultsViewPageStore.studies.result)}</title>
+                    </Helmet>
+                )
+            }
 
-                {
-                    (this.resultsViewPageStore.studies.isComplete) && (
-                        <Helmet>
-                            <title>{buildResultsViewPageTitle(this.resultsViewPageStore.hugoGeneSymbols, this.resultsViewPageStore.studies.result)}</title>
-                        </Helmet>
-                    )
-                }
-
-                <div>
-
+            <div>
                 <div style={{margin:"0 20px 10px 20px"}}>
                     <QuerySummary queryStore={getBrowserWindow().currentQueryStore} routingStore={this.props.routing} store={this.resultsViewPageStore}/>
                 </div>
@@ -486,9 +494,17 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
                         </MSKTabs>
                     )
                 }
+            </div>
+        </div>)
+    }
 
-                </div>
-
+    public render() {
+        return (
+            <PageLayout noMargin={true}>
+                {
+                    !this.resultsViewPageStore.checkingVirtualStudies && this.pageContent
+                }
+                <LoadingIndicator isLoading={this.resultsViewPageStore.checkingVirtualStudies} center={true} size={"big"}/>
             </PageLayout>
         )
 
@@ -496,3 +512,4 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
 
 
 }
+
