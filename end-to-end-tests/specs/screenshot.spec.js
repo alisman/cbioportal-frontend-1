@@ -231,7 +231,7 @@ describe('patient view page screenshot test', function(){
 
         var res = browser.checkElement('#mainColumn', {hide:['.qtip'] });
         assertScreenShotMatch(res);
-    });
+    }); fdsaf dsa
 });
 
 describe('study view screenshot test', function(){
