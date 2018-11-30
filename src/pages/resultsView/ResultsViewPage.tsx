@@ -465,7 +465,7 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
             <div>
                 <div style={{margin:"0 20px 10px 20px"}}>
                     <QuerySummary routingStore={this.props.routing} store={this.resultsViewPageStore}/>
-                </div>
+                </div>fdas
 
                 {
                     (this.resultsViewPageStore.studies.isComplete) && (
