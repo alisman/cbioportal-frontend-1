@@ -29,11 +29,7 @@
     }
 
     .noGroupsMessage {
-        padding:15px;
-        height:103px;
-        display:flex;
-        justify-content:center;
-        align-items:center;
+
     }
 
     :global(input.form-control) {
@@ -54,6 +50,20 @@
     border-radius:$cornerBorderRadius;
 
 }
+
+.groupLineItemActionButtons {
+    > span {
+        margin-left:5px;
+        i {
+            color:$brand-primary;
+            &:hover {
+                color:darken($brand-primary,10%)
+            }
+        }
+    }
+}
+
+
 
 .headerControls {
     display:flex;

@@ -16,6 +16,8 @@ import styles from "../styles.module.scss"
 import {SyntheticEvent} from "react";
 import DefaultTooltip from "../../../shared/components/defaultTooltip/DefaultTooltip";
 
+
+
 export interface IGroupCheckboxProps {
     group:StudyViewComparisonGroup;
     store:StudyViewPageStore;
@@ -154,6 +156,7 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
             ];
         } else if (!this.props.markedForDeletion) {
             editingRelatedIcons = [
+                <DefaultTooltip overlay={"Edit Name"}>
                 <span
                     onClick={this.onEditClick}
                 >
@@ -163,7 +166,30 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
                             cursor:"pointer"
                         }}
                     />
-                </span>
+                </span></DefaultTooltip>,
+                <DefaultTooltip overlay={"Delete Group"}>
+                <span
+                    onClick={this.onEditClick}
+                >
+                    <i
+                        className="fa fa-md fa-trash"
+                        style={{
+                            cursor:"pointer"
+                        }}
+                    />
+                </span></DefaultTooltip>,
+                <DefaultTooltip overlay={"Add Currently Selected Samples"}>
+                    <span
+                        onClick={this.onEditClick}
+                    >
+                        <i
+                            className="fa fa-md fa-plus"
+                            style={{
+                                cursor:"pointer"
+                            }}
+                        />
+                    </span>
+                </DefaultTooltip>
             ];
         }
         
@@ -177,11 +203,11 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
                 }}
             >
                 {checkboxAndLabel}
-                <span>
+                <div className={styles.groupLineItemActionButtons}>
                     {editingRelatedIcons}
                     {this.props.group.nonExistentSamples.length > 0 && <ErrorIcon tooltip={<MissingSamplesMessage samples={this.props.group.nonExistentSamples}/>} />}
                     {this.props.markedForDeletion && (<button style={{marginLeft:10}} className="btn btn-xs btn-default" onClick={this.onRestoreClick}>Restore</button>)}
-                </span>
+                </div>
             </div>
         );
     }
