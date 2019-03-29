@@ -24,6 +24,8 @@ export interface IGroupCheckboxProps {
     markedForDeletion:boolean;
     restore:(group:StudyViewComparisonGroup)=>void;
     rename:(newName:string, currentGroup:StudyViewComparisonGroup)=>void;
+    delete:(group:StudyViewComparisonGroup)=>void;
+    addSelectedSamples:(group:StudyViewComparisonGroup)=>void;
     allGroupNames:string[];
 }
 
@@ -51,6 +53,16 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
     private onEditClick() {
         this._editingName = true;
         this.nameInput = this.props.group.name;
+    }
+
+    @autobind
+    private onDeleteClick() {
+        this.props.delete(this.props.group);
+    }
+
+    @autobind
+    private onAddSelectedSamplesClick() {
+        this.props.addSelectedSamples(this.props.group);
     }
 
     @autobind
@@ -169,7 +181,7 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
                 </span></DefaultTooltip>,
                 <DefaultTooltip overlay={"Delete Group"}>
                 <span
-                    onClick={this.onEditClick}
+                    onClick={this.onDeleteClick}
                 >
                     <i
                         className="fa fa-md fa-trash"
@@ -180,7 +192,7 @@ export default class GroupCheckbox extends React.Component<IGroupCheckboxProps, 
                 </span></DefaultTooltip>,
                 <DefaultTooltip overlay={"Add Currently Selected Samples"}>
                     <span
-                        onClick={this.onEditClick}
+                        onClick={this.onAddSelectedSamplesClick}
                     >
                         <i
                             className="fa fa-md fa-plus"

@@ -73,6 +73,24 @@ export default class ComparisonGroupManager extends React.Component<IComparisonG
         this.addSamplesTargetGroupId = "";
     }
 
+    @autobind
+    @action
+    private deleteGroup(group: StudyViewComparisonGroup) {
+        this.props.store.toggleComparisonGroupMarkedForDeletion(group.uid);
+    }
+
+    @autobind
+    @action
+    private async addSamplesToGroup(group: StudyViewComparisonGroup) {
+        if (this.props.store.selectedSamples.result) {
+            await comparisonClient.updateGroup(
+                group.uid,
+                addSamplesParameters(group, this.props.store.selectedSamples.result)
+            );
+            this.props.store.notifyComparisonGroupsChange();
+        }
+    }
+
     private get headerWithSearch() {
         return (
             <div style={{display:"flex", flexDirection:"row", justifyContent:"space-between", width:"100%", marginTop:3}}>
@@ -114,7 +132,8 @@ export default class ComparisonGroupManager extends React.Component<IComparisonG
     private readonly groupsSection = MakeMobxView({
         await:()=>[
             this.props.store.comparisonGroups,
-            this.filteredGroups
+            this.filteredGroups,
+            this.props.store.selectedSamples
         ],
         render:()=>{
             if (this.props.store.comparisonGroups.result!.length > 0) {
@@ -130,6 +149,8 @@ export default class ComparisonGroupManager extends React.Component<IComparisonG
                                     markedForDeletion={this.props.store.isComparisonGroupMarkedForDeletion(group.uid)}
                                     restore={this.restoreGroup}
                                     rename={this.renameGroup}
+                                    delete={this.deleteGroup}
+                                    addSelectedSamples={this.addSamplesToGroup}
                                     allGroupNames={allGroupNames}
                                 />
                             ))
