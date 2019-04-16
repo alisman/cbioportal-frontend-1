@@ -1,100 +1,91 @@
-import React from 'react';
-import {default as chai, assert} from 'chai';
-import chaiEnzyme from 'chai-enzyme';
-import {shallow, mount, ReactWrapper} from 'enzyme';
-import sinon from 'sinon';
+import React from "react";
+import { default as chai, assert } from "chai";
+import chaiEnzyme from "chai-enzyme";
+import { shallow, mount, ReactWrapper } from "enzyme";
+import sinon from "sinon";
 import ScrollBar from "./ScrollBar";
-import {runInAction} from "mobx";
+import { runInAction } from "mobx";
 
-describe('Scrollbar',()=>{
+describe("Scrollbar", () => {
+  var wrapper;
+  var instance: ScrollBar;
+  var fakeInstance: any;
 
-    var wrapper;
-    var instance: ScrollBar;
-    var fakeInstance: any;
+  before(() => {
+    fakeInstance = {
+      overflow: false,
+      visible: false,
+      scrollEl: {
+        parentNode: {
+          offsetWidth: 500
+        },
+        offsetWidth: 400,
+        style: {}
+      }
+    };
 
-    before(()=>{
+    wrapper = mount(<ScrollBar getScrollEl={() => fakeInstance.scrollEl} />);
+    instance = wrapper.instance() as ScrollBar;
+  });
 
-        fakeInstance = {
-            overflow:false,
-            visible:false,
-            scrollEl: {
-                parentNode: {
-                    offsetWidth:500
-                },
-                offsetWidth:400,
-                style:{}
-            }
-        };
+  beforeEach(() => {});
 
-        wrapper = mount(<ScrollBar getScrollEl={()=>fakeInstance.scrollEl} />);
-        instance = wrapper.instance() as ScrollBar;
-    });
+  it("detects absence of overflow and hides", done => {
+    assert.equal(instance.overflow, -100, "overflow is negative");
 
-    beforeEach(()=>{
+    setTimeout(() => {
+      assert.isFalse(instance.visible, "not visible if overflow <=0");
+      done();
+    }, 3);
+  });
 
-    });
+  it("detects overflow, shows, calculates handle percentage", done => {
+    fakeInstance.scrollEl.parentNode.offsetWidth = 300;
 
-   it('detects absence of overflow and hides',(done)=>{
+    instance.forceUpdate();
 
-       assert.equal(instance.overflow, -100, 'overflow is negative');
+    assert.equal(instance.overflow, 100, "overflow is positive");
 
-       setTimeout(()=>{
-           assert.isFalse(instance.visible, "not visible if overflow <=0");
-           done();
-       },3);
+    setTimeout(() => {
+      assert.isTrue(instance.visible, "visible if overflow > 0");
+      assert.equal(instance.handleWidth, "56.25%");
+      done();
+    }, 3);
+  });
 
-   });
+  it("handles drag event properly", () => {
+    fakeInstance.scrollEl.parentNode.offsetWidth = 300;
 
-    it('detects overflow, shows, calculates handle percentage',(done)=>{
+    instance.forceUpdate();
 
-        fakeInstance.scrollEl.parentNode.offsetWidth = 300;
+    const doScrollStub = sinon.stub(instance, "doScroll");
 
-        instance.forceUpdate();
+    const handleNode = {
+      offsetWidth: 50,
+      parentNode: {
+        offsetWidth: 350
+      }
+    };
 
-        assert.equal(instance.overflow, 100, 'overflow is positive');
+    instance.handleDragEvent({}, { node: handleNode, x: 30 });
+    assert(doScrollStub.calledOnce, "calls doScroll");
+    assert.equal(
+      doScrollStub.args[0][0],
+      0.1,
+      "calls doScroll with correct percentage"
+    );
 
-        setTimeout(()=>{
-            assert.isTrue(instance.visible, "visible if overflow > 0");
-            assert.equal(instance.handleWidth,"56.25%");
-            done();
-        },3);
+    instance.handleDragEvent({}, { node: handleNode, x: 1000 });
+    assert.equal(doScrollStub.args[1][0], 1, "handles ratio above 1");
 
-    });
+    handleNode.offsetWidth = 400;
+    instance.handleDragEvent({}, { node: handleNode, x: 30 });
+    assert.equal(doScrollStub.args[2][0], 0, "handles ratio below 1");
+  });
 
-    it('handles drag event properly',()=>{
-
-        fakeInstance.scrollEl.parentNode.offsetWidth = 300;
-
-        instance.forceUpdate();
-
-        const doScrollStub = sinon.stub(instance,"doScroll");
-
-        const handleNode = {
-            offsetWidth:50,
-            parentNode: {
-                offsetWidth:350
-            }
-        };
-
-        instance.handleDragEvent({},{ node:handleNode, x:30 });
-        assert(doScrollStub.calledOnce, "calls doScroll");
-        assert.equal(doScrollStub.args[0][0] , 0.1, "calls doScroll with correct percentage");
-
-        instance.handleDragEvent({},{ node:handleNode, x:1000 });
-        assert.equal(doScrollStub.args[1][0] , 1, "handles ratio above 1");
-
-        handleNode.offsetWidth = 400;
-        instance.handleDragEvent({},{ node:handleNode, x:30 });
-        assert.equal(doScrollStub.args[2][0] , 0, "handles ratio below 1");
-
-
-    });
-
-    it('sets left prop on scroll pane', ()=>{
-        fakeInstance.scrollEl.parentNode.offsetWidth = 300;
-        instance.doScroll(.1);
-        instance.scrollEl.style.left = "-10px";
-    });
-
-
+  it("sets left prop on scroll pane", () => {
+    fakeInstance.scrollEl.parentNode.offsetWidth = 300;
+    instance.doScroll(0.1);
+    instance.scrollEl.style.left = "-10px";
+  });
 });
