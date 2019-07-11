@@ -6,7 +6,8 @@
   "scripts": {
     "test-webdriver-manager": "rm -rf screenshots/diff/; cd .. && ./scripts/env_vars.sh && eval \"$(./scripts/env_vars.sh)\" && cd end-to-end-tests && (wdio wdio/webdriver-manager.conf.js || bash image-compare/upload_failed_screenshots.sh)",
     "e2e": "yarn run test-webdriver-manager",
-    "clear": "rm -rf screenshots/screen/; rm -rf screenshots/reference/; rm -rf errorShots/; rm -rf screenshots/diff/;"
+    "clear": "rm -rf screenshots/screen/; rm -rf screenshots/reference/; rm -rf errorShots/; rm -rf screenshots/diff/;",
+    "boot": "webdriver-manager update && webdriver-manager start"
   },
   "author": "",
   "license": "",
