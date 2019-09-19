@@ -2,153 +2,135 @@ import * as React from 'react';
 import * as _ from 'lodash';
 import $ from 'jquery';
 import URL from 'url';
-import { inject, observer } from 'mobx-react';
-import { computed, observable, reaction, runInAction } from 'mobx';
-import { ResultsViewPageStore } from './ResultsViewPageStore';
-import CancerSummaryContainer from 'pages/resultsView/cancerSummary/CancerSummaryContainer';
-import Mutations from './mutation/Mutations';
-import MutualExclusivityTab from './mutualExclusivity/MutualExclusivityTab';
-import SurvivalTab from './survival/SurvivalTab';
-import DownloadTab from './download/DownloadTab';
-import AppConfig from 'appConfig';
-import CNSegments from './cnSegments/CNSegments';
-import './styles.scss';
-import Network from './network/Network';
-import ResultsViewOncoprint from 'shared/components/oncoprint/ResultsViewOncoprint';
-import QuerySummary from './querySummary/QuerySummary';
-import ExpressionWrapper from './expression/ExpressionWrapper';
-import EnrichmentsTab from 'pages/resultsView/enrichments/EnrichmentsTab';
-import PlotsTab from './plots/PlotsTab';
-import { MSKTab, MSKTabs } from '../../shared/components/MSKTabs/MSKTabs';
-import { PageLayout } from '../../shared/components/PageLayout/PageLayout';
-import autobind from 'autobind-decorator';
-import { ITabConfiguration } from '../../shared/model/ITabConfiguration';
-import getBrowserWindow from '../../public-lib/lib/getBrowserWindow';
-import CoExpressionTab from './coExpression/CoExpressionTab';
-import Helmet from 'react-helmet';
-import { showCustomTab } from '../../shared/lib/customTabs';
-import {
-    getTabId,
-    parseConfigDisabledTabs,
-    parseSamplesSpecifications,
-    ResultsViewTab,
-} from './ResultsViewPageHelpers';
-import {
-    buildResultsViewPageTitle,
-    doesQueryHaveCNSegmentData,
-} from './ResultsViewPageStoreUtils';
-import { AppStore } from '../../AppStore';
-import { updateResultsViewQuery } from './ResultsViewQuery';
-import { trackQuery } from '../../shared/lib/tracking';
-import { onMobxPromise } from '../../shared/lib/onMobxPromise';
-import QueryAndDownloadTabs from 'shared/components/query/QueryAndDownloadTabs';
-import { createQueryStore } from 'pages/home/HomePage';
-import ExtendedRouterStore from 'shared/lib/ExtendedRouterStore';
-import { CancerStudyQueryUrlParams } from '../../shared/components/query/QueryStore';
-import GeneSymbolValidationError from 'shared/components/query/GeneSymbolValidationError';
+import {inject, observer} from "mobx-react";
+import {computed, observable, reaction, runInAction} from "mobx";
+import {ResultsViewPageStore} from "./ResultsViewPageStore";
+import CancerSummaryContainer from "pages/resultsView/cancerSummary/CancerSummaryContainer";
+import Mutations from "./mutation/Mutations";
+import MutualExclusivityTab from "./mutualExclusivity/MutualExclusivityTab";
+import SurvivalTab from "./survival/SurvivalTab";
+import DownloadTab from "./download/DownloadTab";
+import AppConfig from "appConfig";
+import CNSegments from "./cnSegments/CNSegments";
+import "./styles.scss";
+import Network from "./network/Network";
+import ResultsViewOncoprint from "shared/components/oncoprint/ResultsViewOncoprint";
+import QuerySummary from "./querySummary/QuerySummary";
+import ExpressionWrapper from "./expression/ExpressionWrapper";
+import EnrichmentsTab from "pages/resultsView/enrichments/EnrichmentsTab";
+import PlotsTab from "./plots/PlotsTab";
+import {MSKTab, MSKTabs} from "../../shared/components/MSKTabs/MSKTabs";
+import {PageLayout} from "../../shared/components/PageLayout/PageLayout";
+import autobind from "autobind-decorator";
+import {ITabConfiguration} from "../../shared/model/ITabConfiguration";
+import getBrowserWindow from "../../public-lib/lib/getBrowserWindow";
+import CoExpressionTab from "./coExpression/CoExpressionTab";
+import Helmet from "react-helmet";
+import {showCustomTab} from "../../shared/lib/customTabs";
+import {parseConfigDisabledTabs, ResultsViewTab} from "./ResultsViewPageHelpers";
+import {buildResultsViewPageTitle, doesQueryHaveCNSegmentData} from "./ResultsViewPageStoreUtils";
+import {AppStore} from "../../AppStore";
+import {trackQuery} from "../../shared/lib/tracking";
+import QueryAndDownloadTabs from "shared/components/query/QueryAndDownloadTabs";
+import {createQueryStore} from "pages/home/HomePage";
+import ExtendedRouterStore from "shared/lib/ExtendedRouterStore";
+import ResultsViewURLWrapper from "pages/resultsView/ResultsViewURLWrapper";
 
-function initStore(appStore: AppStore) {
-    const resultsViewPageStore = new ResultsViewPageStore(
-        appStore,
-        getBrowserWindow().globalStores.routing
-    );
+function initStore(appStore:AppStore, urlWrapper:ResultsViewURLWrapper) {
 
-    resultsViewPageStore.tabId = getTabId(
-        getBrowserWindow().globalStores.routing.location.pathname
-    );
+    const resultsViewPageStore = new ResultsViewPageStore(appStore, getBrowserWindow().globalStores.routing, urlWrapper);
 
-    let lastQuery: any;
-    let lastPathname: string;
-
-    const queryReactionDisposer = reaction(
-        () => {
-            return [
-                getBrowserWindow().globalStores.routing.query,
-                getBrowserWindow().globalStores.routing.location.pathname,
-            ];
-        },
-        (x: any) => {
-            const query = x[0] as CancerStudyQueryUrlParams;
-            const pathname = x[1];
-
-            // escape from this if queryies are deeply equal
-            // TODO: see if we can figure out why query is getting changed and
-            // if there's any way to do shallow equality check to avoid this expensive operation
-            const queryChanged = !_.isEqual(lastQuery, query);
-            const pathnameChanged = pathname !== lastPathname;
-            if (!queryChanged && !pathnameChanged) {
-                return;
-            } else {
-                if (
-                    !getBrowserWindow().globalStores.routing.location.pathname.includes(
-                        '/results'
-                    )
-                ) {
-                    return;
-                }
-                runInAction(() => {
-                    // set query and pathname separately according to which changed, to avoid unnecessary
-                    //  recomputation by updating the query if only the pathname changed
-                    if (queryChanged) {
-                        // update query
-                        // normalize cancer_study_list this handles legacy sessions/urls where queries with single study had different param name
-                        const cancer_study_list =
-                            query.cancer_study_list || query.cancer_study_id;
-
-                        const cancerStudyIds: string[] = cancer_study_list.split(
-                            ','
-                        );
-
-                        const oql = decodeURIComponent(query.gene_list);
-
-                        let samplesSpecification = parseSamplesSpecifications(
-                            query,
-                            cancerStudyIds
-                        );
-
-                        const changes = updateResultsViewQuery(
-                            resultsViewPageStore.rvQuery,
-                            query,
-                            samplesSpecification,
-                            cancerStudyIds,
-                            oql
-                        );
-                        if (changes.cohortIdsList) {
-                            resultsViewPageStore.initDriverAnnotationSettings();
-                        }
-
-                        onMobxPromise(resultsViewPageStore.studyIds, () => {
-                            try {
-                                trackQuery(
-                                    resultsViewPageStore.studyIds.result!,
-                                    oql,
-                                    resultsViewPageStore.hugoGeneSymbols,
-                                    resultsViewPageStore.queriedVirtualStudies
-                                        .result!.length > 0
-                                );
-                            } catch {}
-                        });
-
-                        lastQuery = query;
-                    }
-                    if (pathnameChanged) {
-                        // need to set tab like this instead of with injected via params.tab because we need to set the tab
-                        //  at the same time as we set the query parameters, otherwise we get race conditions where the tab
-                        //  we're on at the time we update the query doesnt get unmounted because we change the query, causing
-                        //  MSKTabs unmounting, THEN change the tab.
-                        const tabId = getTabId(pathname);
-                        if (resultsViewPageStore.tabId !== tabId) {
-                            resultsViewPageStore.tabId = tabId;
-                        }
-                        lastPathname = pathname;
-                    }
-                });
+    reaction(
+        ()=>[resultsViewPageStore.studyIds, resultsViewPageStore.oqlText],
+        ()=>{
+            if (resultsViewPageStore.studyIds.isComplete) {
+                trackQuery(resultsViewPageStore.studyIds.result!, resultsViewPageStore.oqlText, resultsViewPageStore.hugoGeneSymbols, resultsViewPageStore.queriedVirtualStudies.result!.length > 0);
             }
-        },
-        { fireImmediately: true }
+        }
     );
 
-    resultsViewPageStore.queryReactionDisposer = queryReactionDisposer;
+
+    // whenever study list changes, reinit driver annotation settings
+    // const driverAnnotationsReactionDisposer = reaction(
+    //     ()=>urlWrapper.query.cancer_study_list,
+    //     ()=>{
+    //         resultsViewPageStore.initDriverAnnotationSettings();
+    //     },
+    //     { fireImmediately:true }
+    // );
+
+    // let lastQuery:any;
+    // let lastPathname:string;
+    //
+    // const queryReactionDisposer = reaction(
+    //     () => {
+    //         return [getBrowserWindow().globalStores.routing.query, getBrowserWindow().globalStores.routing.location.pathname];
+    //     },
+    //     (x:any) => {
+    //
+    //         const query = x[0] as CancerStudyQueryUrlParams;
+    //         const pathname = x[1];
+    //
+    //         // escape from this if queryies are deeply equal
+    //         // TODO: see if we can figure out why query is getting changed and
+    //         // if there's any way to do shallow equality check to avoid this expensive operation
+    //         const queryChanged = !_.isEqual(lastQuery, query);
+    //         const pathnameChanged = (pathname !== lastPathname);
+    //         if (!queryChanged && !pathnameChanged) {
+    //             return;
+    //         } else {
+    //
+    //             if (!getBrowserWindow().globalStores.routing.location.pathname.includes("/results")) {
+    //                return;
+    //             }
+    //             runInAction(()=>{
+    //                 // set query and pathname separately according to which changed, to avoid unnecessary
+    //                 //  recomputation by updating the query if only the pathname changed
+    //                 if (queryChanged) {
+    //                     // update query
+    //                     // normalize cancer_study_list this handles legacy sessions/urls where queries with single study had different param name
+    //                     // const cancer_study_list = query.cancer_study_list || query.cancer_study_id;
+    //                     //
+    //                     // const cancerStudyIds: string[] = cancer_study_list.split(",");
+    //                     //
+    //                     // const oql = decodeURIComponent(query.gene_list);
+    //
+    //                     //let samplesSpecification = parseSamplesSpecifications(query, cancerStudyIds);
+    //
+    //                     //const changes = updateResultsViewQuery(resultsViewPageStore.rvQuery, query, [], cancerStudyIds, oql);
+    //
+    //                     console.log("MUST RESTORE INIT DRIVER ANNOTATION SETTINGS");
+    //
+    //                     // if (changes.cohortIdsList) {
+    //                     //     resultsViewPageStore.initDriverAnnotationSettings();
+    //                     // }
+    //
+    //                     // onMobxPromise(resultsViewPageStore.studyIds, ()=>{
+    //                     //     try {
+    //                     //         trackQuery(resultsViewPageStore.studyIds.result!, oql, resultsViewPageStore.hugoGeneSymbols, resultsViewPageStore.queriedVirtualStudies.result!.length > 0);
+    //                     //     } catch {};
+    //                     // });
+    //
+    //                     //lastQuery = query;
+    //                 }
+    //                 // if (pathnameChanged) {
+    //                 //     // need to set tab like this instead of with injected via params.tab because we need to set the tab
+    //                 //     //  at the same time as we set the query parameters, otherwise we get race conditions where the tab
+    //                 //     //  we're on at the time we update the query doesnt get unmounted because we change the query, causing
+    //                 //     //  MSKTabs unmounting, THEN change the tab.
+    //                 //     const tabId = getTabId(pathname);
+    //                 //     if (resultsViewPageStore.tabId !== tabId) {
+    //                 //         resultsViewPageStore.tabId = tabId;
+    //                 //     }
+    //                 //     lastPathname = pathname;
+    //                 // }
+    //             });
+    //         }
+    //     },
+    //     {fireImmediately: true}
+    // );
+    //
+    // //resultsViewPageStore.queryReactionDisposer = queryReactionDisposer;
 
     return resultsViewPageStore;
 }
@@ -171,14 +153,21 @@ export default class ResultsViewPage extends React.Component<
 > {
     private resultsViewPageStore: ResultsViewPageStore;
 
+    private urlWrapper: ResultsViewURLWrapper;
+
     @observable showTabs = true;
 
     constructor(props: IResultsViewPageProps) {
         super(props);
 
-        this.resultsViewPageStore = initStore(props.appStore);
+        this.urlWrapper = new ResultsViewURLWrapper(props.routing);
 
-        getBrowserWindow().resultsViewPageStore = this.resultsViewPageStore;
+        setWindowVariable("urlWrapper", this.urlWrapper);
+
+        this.resultsViewPageStore = initStore(props.appStore, this.urlWrapper);
+
+        setWindowVariable("resultsViewPageStore",  this.resultsViewPageStore);
+
     }
 
     private handleTabChange(id: string, replace?: boolean) {
@@ -201,7 +190,7 @@ export default class ResultsViewPage extends React.Component<
     }
 
     componentWillUnmount() {
-        this.resultsViewPageStore.queryReactionDisposer();
+        this.resultsViewPageStore.destroy();
     }
 
     @computed
@@ -438,8 +427,7 @@ export default class ResultsViewPage extends React.Component<
                                     <Network
                                         genes={store.genes.result!}
                                         profileIds={
-                                            store.rvQuery
-                                                .selectedMolecularProfileIds
+                                            store.selectedMolecularProfileIds
                                         }
                                         cancerStudyId={
                                             store.studies.result.length > 0
@@ -448,7 +436,7 @@ export default class ResultsViewPage extends React.Component<
                                                 : ''
                                         }
                                         zScoreThreshold={
-                                            store.rvQuery.zScoreThreshold
+                                            store.zScoreThreshold
                                         }
                                         caseSetId={
                                             store.sampleLists.result!.length > 0
@@ -667,12 +655,9 @@ export default class ResultsViewPage extends React.Component<
                                 !this.resultsViewPageStore.isQueryInvalid && (
                                     <MSKTabs
                                         key={
-                                            this.resultsViewPageStore.rvQuery
-                                                .hash
+                                            this.urlWrapper.hash
                                         }
-                                        activeTabId={this.currentTab(
-                                            this.resultsViewPageStore.tabId
-                                        )}
+                                        activeTabId={this.resultsViewPageStore.tabId}
                                         unmountOnHide={false}
                                         onTabClick={(id: string) =>
                                             this.handleTabChange(id)
