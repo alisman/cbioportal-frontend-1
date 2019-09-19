@@ -44,7 +44,6 @@ import { Treatment } from "shared/api/generated/CBioPortalAPIInternal";
 interface IResultsViewOncoprintProps {
     divId: string;
     store:ResultsViewPageStore;
-    routing:any;
     addOnBecomeVisibleListener?:(callback:()=>void)=>void;
 }
 
@@ -58,7 +57,6 @@ export type SortMode = (
     {type:"data"|"alphabetical"|"caseList", clusteredHeatmapProfile?:undefined} |
     {type:"heatmap", clusteredHeatmapProfile:string}
 );
-
 
 export interface IGenesetExpansionRecord {
     entrezGeneId: number;
@@ -849,6 +847,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     readonly sampleClinicalTracks = makeClinicalTracksMobxPromise(this, true);
     readonly patientClinicalTracks = makeClinicalTracksMobxPromise(this, false);
+
     @computed get clinicalTracks() {
         return (this.columnMode === "sample" ? this.sampleClinicalTracks : this.patientClinicalTracks);
     }
@@ -950,8 +949,8 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }*/
 
     @computed get isLoading() {
-        return this.clinicalTracks.isPending
-            || this.geneticTracks.isPending
+        return this.geneticTracks.isPending
+            || this.clinicalTracks.isPending
             || this.genesetHeatmapTracks.isPending
             || this.heatmapTracks.isPending
             || this.treatmentHeatmapTracks.isPending;
@@ -1072,6 +1071,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     }
 
     public render() {
+        console.log("Oncoprint rendering");
         return (
             <div style={{ position:"relative" }}>
 
