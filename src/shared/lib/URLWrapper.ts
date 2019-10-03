@@ -5,7 +5,8 @@ import * as _ from "lodash";
 
 export type Property<T> = {
     name: keyof T,
-    isSessionProp: boolean
+    isSessionProp: boolean,
+    aliases?: string[],
 };
 
 export default class URLWrapper<QueryParamsType extends { [key:string] : string | undefined }> {
@@ -40,7 +41,6 @@ export default class URLWrapper<QueryParamsType extends { [key:string] : string 
             for (const property of properties) {
                 // @ts-ignore
                 this.syncProperty(property, query);
-                //this.query[property.name] = typeof query[property.name] === "string" ? decodeURIComponent(query[property.name]) : undefined;
             }
         });
     }
