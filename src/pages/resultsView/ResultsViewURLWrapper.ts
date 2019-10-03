@@ -33,7 +33,7 @@ export default class ResultsViewURLWrapper extends URLWrapper<ResultsViewURLQuer
         super(routing, [
             { name:"clinicallist", isSessionProp:false },
             { name: "gene_list", isSessionProp:true },
-            { name: "cancer_study_list", isSessionProp:true },
+            { name: "cancer_study_list", isSessionProp:true, aliases:["cancer_study_id"] },
             { name: "case_ids", isSessionProp:true },
             { name: "sample_list_ids", isSessionProp:true },
             { name: "case_set_id", isSessionProp:true },

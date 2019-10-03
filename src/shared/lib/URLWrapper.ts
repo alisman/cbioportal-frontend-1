@@ -3,8 +3,11 @@ import ExtendedRouterStore from "./ExtendedRouterStore";
 
 export type Property<T> = {
     name: keyof T,
-    isSessionProp: boolean
+    isSessionProp: boolean,
+    aliases?: string[],
 };
+
+
 
 export default class URLWrapper<QueryParamsType extends { [key:string] : string | undefined }> {
     public query:QueryParamsType;
@@ -37,7 +40,8 @@ export default class URLWrapper<QueryParamsType extends { [key:string] : string 
             }
             for (const property of properties) {
                 // @ts-ignore
-                this.query[property.name] = typeof query[property.name] === "string" ? decodeURIComponent(query[property.name]) : undefined;
+                this.setProperty(property, query);
+                //this.query[property.name] = typeof query[property.name] === "string" ? decodeURIComponent(query[property.name]) : undefined;
             }
         });
     }
@@ -46,7 +50,22 @@ export default class URLWrapper<QueryParamsType extends { [key:string] : string 
         this.routing.updateRoute(query as any);
     }
 
+    private setProperty(property:Property<QueryParamsType>, query:QueryParamsType){
+        this._setPropertyAndHandleUndefined(property, query[property.name]);
+        // if it's still undefined, then check aliases
+        if (this.query[property.name] === undefined && property.aliases && property.aliases.length) {
+            for (const alias of property.aliases) {
+                this._setPropertyAndHandleUndefined(property, query[alias]);
+                // once you've set it, don't bother with any other aliases
+                if (this.query[property.name]) break;
+            }
+        }
+    }
 
+    private _setPropertyAndHandleUndefined(property:Property<QueryParamsType>, value:string|undefined){
+        // @ts-ignore
+        this.query[property.name] = typeof value === "string" ? decodeURIComponent(value) : undefined;
+    }
 
     public getSessionProps() {
         const ret:Partial<QueryParamsType> = {};
