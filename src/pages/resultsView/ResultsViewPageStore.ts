@@ -169,7 +169,6 @@ import {
     makeComparisonGroupClinicalAttributes,
     makeProfiledInClinicalAttributes,
 } from '../../shared/components/oncoprint/ResultsViewOncoprintUtils';
-import { ResultsViewQuery } from './ResultsViewQuery';
 import { annotateAlterationTypes } from '../../shared/lib/oql/annotateAlterationTypes';
 import { ErrorMessages } from '../../shared/enums/ErrorEnums';
 import {
@@ -206,9 +205,13 @@ import {
 import { IVirtualStudyProps } from 'pages/studyView/virtualStudy/VirtualStudy';
 import { decideMolecularProfileSortingOrder } from './download/DownloadUtils';
 
-type Optional<T> =
-    | { isApplicable: true; value: T }
-    | { isApplicable: false; value?: undefined };
+type Optional<T> = (
+    {isApplicable: true, value: T}
+    | {isApplicable: false, value?: undefined}
+);
+
+const DEFAULT_RPPA_THRESHOLD = 2;
+const DEFAULT_Z_SCORE_THRESHOLD = 2;
 
 export const AlterationTypeConstants = {
     MUTATION_EXTENDED: 'MUTATION_EXTENDED',

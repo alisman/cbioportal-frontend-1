@@ -25,7 +25,6 @@ export type ResultsViewURLQuery = {
     genetic_profile_ids_GENERIC_ASSAY:string;
     genetic_profile_ids:string;
 
-
 };
 
 export default class ResultsViewURLWrapper extends URLWrapper<ResultsViewURLQuery> {
