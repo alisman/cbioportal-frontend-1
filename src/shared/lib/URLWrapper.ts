@@ -18,7 +18,6 @@ export default class URLWrapper<QueryParamsType> {
             initValues[property.name] = undefined;
         }
         this.query = observable<Partial<QueryParamsType>>(initValues);
-
         intercept(this.query, change=>{
             if (change.newValue === this.query[change.name as keyof QueryParamsType]) {
                 // if same value, cancel change to prevent unnecessary changing data
