@@ -413,20 +413,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
             get heatmapIsDynamicallyQueried () {
                 return self.heatmapIsDynamicallyQueried;
             },
-            get clusterHeatmapButtonActive() {
-                return self.isClusteredByCurrentSelectedHeatmapProfile;
-            },
-            get hideClusterHeatmapButton() {
-                const genesetHeatmapProfile: string | undefined = (
-                    self.props.store.genesetMolecularProfile.result &&
-                    self.props.store.genesetMolecularProfile.result.value &&
-                    self.props.store.genesetMolecularProfile.result.value.molecularProfileId
-                );
-                return !(
-                    self.molecularProfileIdToHeatmapTracks[self.selectedHeatmapProfile] ||
-                    self.selectedHeatmapProfile === genesetHeatmapProfile
-                );
-            },
             get heatmapGeneInputValue() {
                 return self.heatmapGeneInputValue;
             },
@@ -621,16 +607,16 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                     this.addHeatmapTracks(molecularProfileId,[]);
                 });
             }),
-            onClickClusterHeatmap:()=>{
-                if (this.isClusteredByCurrentSelectedHeatmapProfile) {
-                    this.sortByData();
-                } else {
-                    this.props.store.urlWrapper.updateURL({
-                        oncoprint_sortby:"cluster",
-                        oncoprint_cluster_profile:this.selectedHeatmapProfile
-                    });
-                }
-            },
+            // onClickClusterHeatmap:()=>{
+            //     if (this.isClusteredByCurrentSelectedHeatmapProfile) {
+            //         this.sortByData();
+            //     } else {
+            //         this.props.store.urlWrapper.updateURL({
+            //             oncoprint_sortby:"cluster",
+            //             oncoprint_cluster_profile:this.selectedHeatmapProfile
+            //         });
+            //     }
+            // },
             onClickDownload:(type:string)=>{
                 switch(type) {
                     case "pdf":
@@ -842,30 +828,6 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.props.store.urlWrapper.updateURL({ heatmap_track_groups, treatment_list });
     }
 
-    private populateHeatMapTracks(molecularProfileId:string, entities:string[], map:any) {
-        const profile:MolecularProfile = this.props.store.molecularProfileIdToMolecularProfile.result[molecularProfileId];
-        if (profile) {
-            let trackGroup = map.get(molecularProfileId);
-            if (!trackGroup) {
-                let newTrackGroupIndex = 2;
-                for (const group of map.values()) {
-                    newTrackGroupIndex = Math.max(newTrackGroupIndex, group.trackGroupIndex + 1);
-                }
-
-                trackGroup = observable({
-                    trackGroupIndex: newTrackGroupIndex,
-                    molecularProfileId,
-                    molecularAlterationType: profile.molecularAlterationType,
-                    entities: observable.shallowMap<boolean>({})
-                });
-                this.molecularProfileIdToHeatmapTracks.set(molecularProfileId, trackGroup);
-            }
-            for (const entity of entities) {
-                trackGroup!.entities.set(entity, true);
-            }
-        }
-    }
-
     private toggleColumnMode() {
         if (this.columnMode === "sample") {
             this.controlsHandlers.onSelectColumnType && this.controlsHandlers.onSelectColumnType("patient");
@@ -1058,30 +1020,42 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     @autobind
     @action
     private clusterHeatmapByIndex(index:TrackGroupIndex) {
-        if (this.oncoprint) {
-            this.oncoprint.resetSortableTracksSortDirection();
-        }
 
-        const groupEntry = this.molecularProfileIdToHeatmapTracks.entries().find(
-            x=>x[1].trackGroupIndex === index
-        );
-        if (groupEntry) {
-            this.sortMode = {
-                type:"heatmap",
-                clusteredHeatmapProfile: groupEntry[1].molecularProfileId
-            };
-        }
+        // ADAM-TODO
+        // if (this.oncoprint) {
+        //     this.oncoprint.resetSortableTracksSortDirection();
+        // }
+        //
+        // const groupEntry = _.values(this.molecularProfileIdToHeatmapTracks).find(
+        //     x=>x[1].trackGroupIndex === index
+        // );
+        // if (groupEntry) {
+            // ADAM-TODO
+            // this.sortMode = {
+            //     type:"heatmap",
+            //     clusteredHeatmapProfile: groupEntry[1].molecularProfileId
+            // };
+        //}
     }
 
     @autobind
     @action
     private removeHeatmapByIndex(index:TrackGroupIndex) {
-        const groupEntry = this.molecularProfileIdToHeatmapTracks.entries().find(
-            x=>x[1].trackGroupIndex === index
-        );
-        if (groupEntry) {
-            this.molecularProfileIdToHeatmapTracks.delete(groupEntry[1].molecularProfileId);
-        }
+
+        // NEEDS TO MANIPULATE URL LIKE THIS
+        // _.forEach(this.molecularProfileIdToHeatmapTracks,(item, molecularProfileId)=>{
+        //     // this will delete all heatmap tracks
+        //     this.addHeatmapTracks(molecularProfileId,[]);
+        // });
+
+
+        // ADAM-TODO
+        // const groupEntry = this.molecularProfileIdToHeatmapTracks.entries().find(
+        //     x=>x[1].trackGroupIndex === index
+        // );
+        // if (groupEntry) {
+        //     this.molecularProfileIdToHeatmapTracks.delete(groupEntry[1].molecularProfileId);
+        // }
     }
 
     readonly heatmapTrackHeaders = remoteData({
@@ -1089,16 +1063,16 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         invoke:()=>{
             const profileMap = this.props.store.molecularProfileIdToMolecularProfile.result!;
             return Promise.resolve(
-                this.molecularProfileIdToHeatmapTracks.entries().reduce((headerMap, nextEntry)=>{
-                    headerMap[nextEntry[1].trackGroupIndex] = {
+                _.reduce(this.molecularProfileIdToHeatmapTracks, (headerMap, nextEntry)=>{
+                    headerMap[nextEntry.trackGroupIndex] = {
                         label:{
-                            text: profileMap[nextEntry[1].molecularProfileId].name
+                            text: profileMap[nextEntry.molecularProfileId].name
                         },
                         options:[{
                             label: "Cluster",
                             onClick: this.clusterHeatmapByIndex,
                             weight:()=>{
-                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry[1].trackGroupIndex) {
+                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry.trackGroupIndex) {
                                     return "bold";
                                 } else {
                                     return "normal";
@@ -1107,12 +1081,12 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                         },{
                             label:"Don't cluster",
                             onClick:()=>{
-                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry[1].trackGroupIndex) {
+                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry.trackGroupIndex) {
                                     this.sortByData();
                                 }
                             },
                             weight:()=>{
-                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry[1].trackGroupIndex) {
+                                if (this.clusteredHeatmapTrackGroupIndex === nextEntry.trackGroupIndex) {
                                     return "normal";
                                 } else {
                                     return "bold";
