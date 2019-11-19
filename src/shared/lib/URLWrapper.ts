@@ -65,6 +65,7 @@ export default class URLWrapper<
         // consumers of wrapper read from this query
         this.query = observable<QueryParamsType>(initValues as QueryParamsType);
 
+
         // if we have a session id, set it so that fetching will begin
         if (sessionEnabled && routing.query.session_id) {
             this.setSessionId(routing.query.session_id);
