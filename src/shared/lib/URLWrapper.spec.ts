@@ -293,9 +293,25 @@ describe("URLWrapper", () => {
     });
 
 
+    it('Populates wrapper query according to alias rules ON instantiation (fire immediately on reaction)', ()=>{
 
+        routingStore = new ExtendedRouterStore();
+
+        const memoryHistory = createMemoryHistory();
+        const history = syncHistoryWithStore(memoryHistory, routingStore);
+
+        routingStore.updateRoute({ gene_list:"12345", cancer_study_id:"789" });
+
+        wrapper = new ResultsViewURLWrapper(routingStore);
+
+        assert.equal(wrapper.query.gene_list, "12345");
+        assert.equal(wrapper.query.cancer_study_list, "789");
+
+    });
 
 });
+
+
 
 
 

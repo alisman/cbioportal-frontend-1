@@ -129,7 +129,7 @@ export default class URLWrapper<
                     }
                 });
             },
-            { fireImmediately:false }
+            { fireImmediately:true }
         );
     }
 
@@ -300,6 +300,7 @@ export default class URLWrapper<
     ) {
         // first determine what value should be
         // resolving to aliases IF they exist
+
         let value = undefined;
         if (query[property.name] !== undefined) {
             value = query[property.name];

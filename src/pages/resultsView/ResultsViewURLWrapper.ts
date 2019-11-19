@@ -67,7 +67,7 @@ export default class ResultsViewURLWrapper extends URLWrapper<ResultsViewURLQuer
             { name: "genetic_profile_ids", isSessionProp:true },
             ],
               true,
-              20
+              2000
         );
     }
 

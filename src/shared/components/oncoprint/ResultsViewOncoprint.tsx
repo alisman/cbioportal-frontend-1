@@ -1022,13 +1022,13 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     private clusterHeatmapByIndex(index:TrackGroupIndex) {
 
         // ADAM-TODO
-        // if (this.oncoprint) {
-        //     this.oncoprint.resetSortableTracksSortDirection();
-        // }
+        if (this.oncoprint) {
+            this.oncoprint.resetSortableTracksSortDirection();
+        }
         //
-        // const groupEntry = _.values(this.molecularProfileIdToHeatmapTracks).find(
-        //     x=>x[1].trackGroupIndex === index
-        // );
+        const groupEntry = _.values(this.molecularProfileIdToHeatmapTracks).find(
+            trackGroup=>trackGroup.trackGroupIndex === index
+        );
         // if (groupEntry) {
             // ADAM-TODO
             // this.sortMode = {
