@@ -214,11 +214,21 @@ describe("URLWrapper", () => {
 
 
 
-    it("creates new session when session param is changed", (done) => {
+    it.only("creates new session when session param is changed", (done) => {
 
-        const stub = sinon.stub(wrapper, "getRemoteSession");
+        let getSessionStub = sinon.stub(wrapper, "getRemoteSession");
 
-        stub.callsFake(function (sessionData) {
+        let saveSessionStub = sinon.stub(wrapper, "saveRemoteSession");
+
+        saveSessionStub.callsFake(function (sessionData) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve({id: "someSessionId"});
+                }, 5);
+            });
+        });
+
+        getSessionStub.callsFake(function (sessionData) {
             return new Promise((resolve) => {
                 setTimeout(() => {
                     return resolve({
@@ -250,25 +260,33 @@ describe("URLWrapper", () => {
         // set first session for loading
         routingStore.updateRoute({session_id: "5dcae586e4b04a9c23e27e5f"});
 
+        assert.isTrue(getSessionStub.calledOnce);
+        assert.isTrue(wrapper.isLoadingSession);
+
         setTimeout(() => {
-            assert.isTrue(stub.calledOnce);
+
+            assert.isFalse(wrapper.isLoadingSession);
 
             wrapper.updateURL({ gene_list:"EGFR TP53" });
+
+            assert.isTrue(saveSessionStub.calledOnce, "it called save session service");
+
+            assert.equal(wrapper.query.gene_list,"EGFR TP53", "sets query params for new session immediately");
 
             assert.isTrue(wrapper.isPendingSession);
             assert.isTrue(wrapper.isLoadingSession);
 
-            assert.equal(wrapper.query.gene_list,"EGFR TP53", "sets query params for new session immediately");
-
-            assert.isTrue(stub.calledTwice);
-
             setTimeout(()=>{
-                assert.isTrue(wrapper.sessionId)
+
+                assert.isTrue(getSessionStub.calledOnce, "did not call get session again");
+                assert.equal(wrapper.sessionId, "someSessionId", "sets session id appropriatly");
+                done();
+
             },50)
 
         }, 50);
 
-        done();
+
 
     });
 
