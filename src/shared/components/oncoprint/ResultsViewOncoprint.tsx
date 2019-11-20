@@ -813,6 +813,8 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
                 molecularProfileId,
                 trackGroupIndex:0,
             } as HeatmapTrackGroupRecord
+        } else {
+            delete tracksMap[molecularProfileId];
         }
 
         const heatmap_track_groups = _.map(tracksMap, (track, molecularProfileId)=>{
@@ -1021,41 +1023,32 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
     @action
     private clusterHeatmapByIndex(index:TrackGroupIndex) {
 
-        // ADAM-TODO
         if (this.oncoprint) {
             this.oncoprint.resetSortableTracksSortDirection();
         }
-        //
+
         const groupEntry = _.values(this.molecularProfileIdToHeatmapTracks).find(
             trackGroup=>trackGroup.trackGroupIndex === index
         );
+
+        //ADAM-TODO: is heapmap correct value for sorby param?  if so, adjust type
         // if (groupEntry) {
-            // ADAM-TODO
-            // this.sortMode = {
-            //     type:"heatmap",
-            //     clusteredHeatmapProfile: groupEntry[1].molecularProfileId
-            // };
-        //}
+        //     this.props.store.urlWrapper.updateURL({
+        //                                               oncoprint_sortby: "heatmap",
+        //                                               oncoprint_cluster_profile: groupEntry.molecularProfileId
+        //                                           });
+        // }
     }
 
     @autobind
     @action
     private removeHeatmapByIndex(index:TrackGroupIndex) {
-
-        // NEEDS TO MANIPULATE URL LIKE THIS
-        // _.forEach(this.molecularProfileIdToHeatmapTracks,(item, molecularProfileId)=>{
-        //     // this will delete all heatmap tracks
-        //     this.addHeatmapTracks(molecularProfileId,[]);
-        // });
-
-
-        // ADAM-TODO
-        // const groupEntry = this.molecularProfileIdToHeatmapTracks.entries().find(
-        //     x=>x[1].trackGroupIndex === index
-        // );
-        // if (groupEntry) {
-        //     this.molecularProfileIdToHeatmapTracks.delete(groupEntry[1].molecularProfileId);
-        // }
+        const groupEntry = _.values(this.molecularProfileIdToHeatmapTracks).find(
+            group=>group.trackGroupIndex === index
+        );
+        if (groupEntry) {
+            this.addHeatmapTracks(groupEntry.molecularProfileId,[]);
+        }
     }
 
     readonly heatmapTrackHeaders = remoteData({

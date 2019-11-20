@@ -266,7 +266,7 @@ export default class URLWrapper<
         invoke: async () => {
             log("fetching remote session", this.sessionId);
             if (this.sessionId && this.sessionId !== 'pending') {
-                let sessionData = this.getRemoteSession(this.sessionId);
+                let sessionData = await this.getRemoteSession(this.sessionId);
 
                 // if it has no version, it's a legacy session and needs to be normalized
                 if (sessionData.version === undefined) {
