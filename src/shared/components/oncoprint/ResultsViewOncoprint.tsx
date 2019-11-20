@@ -830,6 +830,10 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
         this.props.store.urlWrapper.updateURL({ heatmap_track_groups, treatment_list });
     }
 
+    removeHeatmapTracksByProfileId(molecularProfileId:string){
+        this.addHeatmapTracks
+    }
+
     private toggleColumnMode() {
         if (this.columnMode === "sample") {
             this.controlsHandlers.onSelectColumnType && this.controlsHandlers.onSelectColumnType("patient");
@@ -1031,13 +1035,12 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
             trackGroup=>trackGroup.trackGroupIndex === index
         );
 
-        //ADAM-TODO: is heapmap correct value for sorby param?  if so, adjust type
-        // if (groupEntry) {
-        //     this.props.store.urlWrapper.updateURL({
-        //                                               oncoprint_sortby: "heatmap",
-        //                                               oncoprint_cluster_profile: groupEntry.molecularProfileId
-        //                                           });
-        // }
+        if (groupEntry) {
+            this.props.store.urlWrapper.updateURL({
+                                                      oncoprint_sortby: "cluster",
+                                                      oncoprint_cluster_profile: groupEntry.molecularProfileId
+                                                  });
+        }
     }
 
     @autobind

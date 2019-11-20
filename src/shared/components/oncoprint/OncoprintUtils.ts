@@ -703,12 +703,13 @@ export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                     ),
                     trackGroupIndex: molecularProfileIdToHeatmapTracks[molecularProfileId].trackGroupIndex,
                     onRemove:action(()=>{
-                        const trackGroup = molecularProfileIdToHeatmapTracks[molecularProfileId];
+                        const trackGroup = oncoprint.molecularProfileIdToHeatmapTracks[molecularProfileId];
                         if (trackGroup) {
                             const newEntities = _.keys(trackGroup.entities).filter((entity)=>entity!==gene);
                             oncoprint.addHeatmapTracks(molecularProfileId, newEntities);
                         }
-                        if (!molecularProfileIdToHeatmapTracks[molecularProfileId]
+
+                        if (trackGroup === undefined
                             && oncoprint.sortMode.type === "heatmap"
                             && oncoprint.sortMode.clusteredHeatmapProfile === molecularProfileId
                         ) {
@@ -783,14 +784,13 @@ export function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsVi
                     trackLinkUrl: treatmentLinkMap[treatmentId],
                     trackGroupIndex: molecularProfileIdToHeatmapTracks[molecularProfileId]!.trackGroupIndex,
                     onRemove:action(()=>{
-                        const trackGroup = molecularProfileIdToHeatmapTracks[molecularProfileId]!;
-                        if (trackGroup) {
-                            delete trackGroup.entities[treatmentId];
-                            if (!trackGroup.entities.size) {
-                                delete molecularProfileIdToHeatmapTracks[molecularProfileId];
-                            }
+
+                        const trackGroup = oncoprint.molecularProfileIdToHeatmapTracks[molecularProfileId]!;
+                        if (trackGroup){
+                            const newEntities = _.keys(trackGroup.entities).filter((entity)=>entity!==treatmentId);
+                            oncoprint.addHeatmapTracks(molecularProfileId, newEntities);
                         }
-                        if (!molecularProfileIdToHeatmapTracks[molecularProfileId]
+                        if (trackGroup === undefined
                             && oncoprint.sortMode.type === "heatmap"
                             && oncoprint.sortMode.clusteredHeatmapProfile === molecularProfileId
                         ) {
