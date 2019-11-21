@@ -258,9 +258,9 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
         // The heatmap tracks can only be added when detailed information on
         // molecular profiles has been retrieved from the server.
-        onMobxPromise(props.store.molecularProfileIdToMolecularProfile, (result:any)=>{
-            this.initFromUrlParams(getBrowserWindow().globalStores.routing.location.query);
-        });
+        // onMobxPromise(props.store.molecularProfileIdToMolecularProfile, (result:any)=>{
+        //     this.initFromUrlParams(getBrowserWindow().globalStores.routing.location.query);
+        // });
 
         // onMobxPromise(props.store.studyIds, (studyIds:string[])=>{
         //     if (studyIds.length > 1) {

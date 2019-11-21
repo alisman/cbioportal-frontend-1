@@ -114,6 +114,8 @@ export default class URLWrapper<
                     return;
                 }
 
+                debugger;
+
                 runInAction(() => {
                     log("setting session", routeQuery.session_id);
                     this.setSessionId(routeQuery.session_id);
@@ -138,6 +140,8 @@ export default class URLWrapper<
 
     @action
     public updateURL(updatedParams: Partial<QueryParamsType>, path:string | undefined = undefined, clear = false, replace = false) {
+
+        if (updatedParams.case_ids === "2222") debugger;
 
         // get the names of the props that are designated as session props
         const sessionProps = this.getSessionProps();
@@ -179,7 +183,7 @@ export default class URLWrapper<
 
         // we need session if url is longer than this
         const needSession = sessionParametersChanged && this.sessionEnabled &&
-            (this._sessionId !== undefined || url.length > this.urlCharThresholdForSession);
+            (url.length > this.urlCharThresholdForSession);
 
         // if we need to make a new session due to url constraints AND we have a changed session prop
         // then save a new remote session and put the session props in memory for consumption by app
@@ -208,12 +212,15 @@ export default class URLWrapper<
 
                 log("updating URL (non session)", updatedParams);
                 this.saveRemoteSession(paramsMap.sessionProps).then(data => {
-                    this.routing.updateRoute(
-                        { session_id: data.id },
-                        path,
-                        false,
-                        true, // we don't want pending to show up in history
-                    );
+                    debugger;
+                    if (this._sessionData) {
+                        this.routing.updateRoute(
+                            {session_id: data.id},
+                            path,
+                            false,
+                            true, // we don't want pending to show up in history
+                        );
+                    }
                 });
             } else {
                 this.routing.updateRoute(
@@ -223,8 +230,10 @@ export default class URLWrapper<
                     replace
                 );
             }
-        } else {
-            log("updating URL (non session)", clear);
+        } else { // WE ARE NOT IN SESSION MODE
+            this._sessionData = undefined;
+            this.setSessionId(undefined);
+            updatedParams.session_id = undefined;
             this.routing.updateRoute(updatedParams, path, clear, replace);
         }
 
@@ -235,10 +244,11 @@ export default class URLWrapper<
     }
 
     @computed public get isPendingSession() {
-        return this._sessionId === 'pending';
+        return this.sessionId === 'pending';
     }
 
-    public setSessionId(val:string){
+    public setSessionId(val:string|undefined){
+        val = val === "" ? undefined : val; // empty string is invalid
         if (val !== this._sessionId) {
             this._sessionId = val;
         }
@@ -255,7 +265,7 @@ export default class URLWrapper<
     }
 
     @computed get hasSessionId(){
-        return this._sessionId !== undefined;
+        return this.sessionId !== undefined;
     }
 
     getRemoteSession(sessionId:string){
