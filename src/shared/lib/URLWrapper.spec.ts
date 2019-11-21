@@ -170,15 +170,15 @@ describe("URLWrapper", () => {
 
         assert.isTrue(stub.calledOnce, "save session method IS called when thresshold is met");
 
-        // now go back to shorter query BEFORE async session has returned
+        // EVEN IF URL is under threshold, you cannot go back to non session behavior
         wrapper.updateURL({clinicallist: "one,two,three", case_ids: "2222"});
 
-        assert.equal(routingStore.location.query.case_ids, "2222");
+        assert.isUndefined(routingStore.location.query.case_ids);
         assert.equal(wrapper.query.case_ids, "2222");
 
         setTimeout(()=>{
             assert.equal(wrapper.query.case_ids, "2222");
-            assert.equal(routingStore.location.query.case_ids, "2222");
+            assert.isUndefined(routingStore.location.query.case_ids);
             done();
         },50)
 

@@ -178,14 +178,14 @@ export default class URLWrapper<
         const sessionParametersChanged = _.some(_.keys(updatedParams), (key)=>key in sessionProps);
 
         // we need session if url is longer than this
-        const needSession = sessionParametersChanged && this.sessionEnabled &&
-            (url.length > this.urlCharThresholdForSession);
+        // or if we already have session
+        const inSessionMode = this.sessionEnabled && (this.hasSessionId || url.length > this.urlCharThresholdForSession);
 
         // if we need to make a new session due to url constraints AND we have a changed session prop
         // then save a new remote session and put the session props in memory for consumption by app
         // otherwise just update the URL
         if (
-            needSession
+            inSessionMode
         ) {
             if (sessionParametersChanged) {
 
@@ -227,6 +227,7 @@ export default class URLWrapper<
                     }
                 });
             } else {
+                // we already have session, we just need to update path or non session params
                 this.routing.updateRoute(
                     Object.assign({}, paramsMap.nonSessionProps),
                     path,
@@ -235,9 +236,8 @@ export default class URLWrapper<
                 );
             }
         } else { // WE ARE NOT IN SESSION MODE
-            this._sessionData = undefined;
-            //this.setSessionId(undefined);
-            updatedParams.session_id = undefined;
+            //this._sessionData = undefined;
+            //updatedParams.session_id = undefined;
             this.routing.updateRoute(updatedParams, path, clear, replace);
         }
 
