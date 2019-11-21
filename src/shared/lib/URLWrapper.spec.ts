@@ -133,7 +133,7 @@ describe("URLWrapper", () => {
         assert.equal(wrapper.query.case_ids, "1231", "we have access to session prop on query");
 
         setTimeout(() => {
-            assert.equal(wrapper._sessionId, "someSessionId");
+            assert.equal(wrapper.sessionId, "someSessionId");
             done();
         }, 10);
 
@@ -351,7 +351,7 @@ describe("URLWrapper", () => {
 
     });
 
-    it('does what it should',()=>{
+    it('when clear=true, gets rid of any existing params',()=>{
 
         wrapper.updateURL({
            case_ids:"12345",
@@ -360,13 +360,15 @@ describe("URLWrapper", () => {
         assert.equal(wrapper.query.case_ids,"12345");
         assert.equal(routingStore.location.query.case_ids,"12345");
 
-        wrapper.updateURL({}, undefined, true);
+        wrapper.updateURL({ cancer_study_list:"somelist" }, undefined, true);
 
         assert.isUndefined(routingStore.location.query.case_ids);
 
         assert.isFalse("case_ids" in routingStore.location.query);
 
         assert.isUndefined(wrapper.query.case_ids, "removes existing params on clear");
+
+        assert.equal(routingStore.location.query.cancer_study_list, "somelist")
 
     });
 
@@ -386,6 +388,54 @@ describe("URLWrapper", () => {
         assert.equal(wrapper.query.cancer_study_list, "789");
 
     });
+
+    it('handles new session before old session finished saving',(done)=>{
+
+        wrapper.urlCharThresholdForSession = 0;
+        wrapper.sessionEnabled = true;
+
+        let saveSessionStub = sinon.stub(wrapper, "saveRemoteSession");
+
+        saveSessionStub.callsFake(function (sessionData) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve({id: "sessionId1"});
+                }, 10);
+            });
+        });
+
+        wrapper.updateURL({ gene_list:"12345" });
+
+        assert.isTrue(saveSessionStub.called);
+
+        saveSessionStub.callsFake(function (sessionData) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve({id: "sessionId2"});
+                }, 5);
+            });
+        });
+
+        wrapper.updateURL({ gene_list:"54321" });
+
+        assert.isTrue(saveSessionStub.calledTwice);
+
+        // should reflect sequence of sessions, not response
+        // i.e. first session should have been cancelled by second
+        // even though second response sooner
+        setTimeout(()=>{
+            assert.equal(wrapper.sessionId, "sessionId2");
+            assert.equal(wrapper.query.gene_list,"54321");
+            assert.equal(routingStore.location.query.session_id, "sessionId2");
+            done();
+        },20);
+
+
+
+
+    });
+
+
 
 });
 

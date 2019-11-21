@@ -114,8 +114,6 @@ export default class URLWrapper<
                     return;
                 }
 
-                debugger;
-
                 runInAction(() => {
                     log("setting session", routeQuery.session_id);
                     this.setSessionId(routeQuery.session_id);
@@ -136,12 +134,10 @@ export default class URLWrapper<
         );
     }
 
-    @observable _sessionId: string;
+    //@observable _sessionId: string;
 
     @action
     public updateURL(updatedParams: Partial<QueryParamsType>, path:string | undefined = undefined, clear = false, replace = false) {
-
-        if (updatedParams.case_ids === "2222") debugger;
 
         // get the names of the props that are designated as session props
         const sessionProps = this.getSessionProps();
@@ -193,11 +189,17 @@ export default class URLWrapper<
         ) {
             if (sessionParametersChanged) {
 
+                // keep a timestamp to make sure
+                // that async session response matches the
+                // current session and hasn't been invalidated by subsequent session
+                var timeStamp = Date.now();
+
                 this._sessionData = {
                     id: "pending",
                     query: paramsMap.sessionProps,
                     path: path || this.pathName,
-                    version:3
+                    version:3,
+                    timeStamp
                 };
 
                 // we need to make a new session
@@ -211,9 +213,11 @@ export default class URLWrapper<
                 );
 
                 log("updating URL (non session)", updatedParams);
+
                 this.saveRemoteSession(paramsMap.sessionProps).then(data => {
-                    debugger;
-                    if (this._sessionData) {
+                    // make sure that we have sessionData and that timestamp on the session hasn't
+                    // been changed since it started
+                    if (this._sessionData && timeStamp === this._sessionData.timeStamp) {
                         this.routing.updateRoute(
                             {session_id: data.id},
                             path,
@@ -232,7 +236,7 @@ export default class URLWrapper<
             }
         } else { // WE ARE NOT IN SESSION MODE
             this._sessionData = undefined;
-            this.setSessionId(undefined);
+            //this.setSessionId(undefined);
             updatedParams.session_id = undefined;
             this.routing.updateRoute(updatedParams, path, clear, replace);
         }
@@ -248,14 +252,15 @@ export default class URLWrapper<
     }
 
     public setSessionId(val:string|undefined){
-        val = val === "" ? undefined : val; // empty string is invalid
-        if (val !== this._sessionId) {
-            this._sessionId = val;
-        }
+        // val = val === "" ? undefined : val; // empty string is invalid
+        // if (val !== this._sessionId) {
+        //     this._sessionId = val;
+        // }
     }
 
     @computed public get sessionId(){
-        return this._sessionId;
+        return this.routing.location.query.session_id === "" ?
+            undefined : this.routing.location.query.session_id
     }
 
     @observable public _sessionData:PortalSession | undefined;
