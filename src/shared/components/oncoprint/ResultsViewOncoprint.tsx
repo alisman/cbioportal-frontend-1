@@ -1238,8 +1238,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
             this.props.store.molecularProfileIdToMolecularProfile,
             this.alterationTypesInQuery,
             this.alteredKeys,
-            this.heatmapTrackHeaders,
-            this.props.store.treatmentsInStudies
+            this.heatmapTrackHeaders
         ],
         render:()=>(
             <Oncoprint
