@@ -214,7 +214,7 @@ describe("URLWrapper", () => {
 
 
 
-    it.only("creates new session when session param is changed", (done) => {
+    it("creates new session when session param is changed", (done) => {
 
         let getSessionStub = sinon.stub(wrapper, "getRemoteSession");
 

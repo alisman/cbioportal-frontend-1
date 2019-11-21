@@ -203,7 +203,7 @@ export default class URLWrapper<
                     }),
                     path,
                     true,
-                    replace
+                    false
                 );
 
                 log("updating URL (non session)", updatedParams);
@@ -212,7 +212,7 @@ export default class URLWrapper<
                         { session_id: data.id },
                         path,
                         false,
-                        true
+                        true, // we don't want pending to show up in history
                     );
                 });
             } else {
@@ -265,7 +265,7 @@ export default class URLWrapper<
     public remoteSessionData = remoteData({
         invoke: async () => {
             log("fetching remote session", this.sessionId);
-            if (this.sessionId && this.sessionId !== 'pending') {
+            if (this.sessionId && this.sessionId !== 'pending' && this._sessionData === undefined) {
                 let sessionData = await this.getRemoteSession(this.sessionId);
 
                 // if it has no version, it's a legacy session and needs to be normalized
