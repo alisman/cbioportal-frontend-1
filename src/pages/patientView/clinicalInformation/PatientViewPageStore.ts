@@ -112,6 +112,7 @@ import { getVariantAlleleFrequency } from '../../../shared/lib/MutationUtils';
 import { AppStore, SiteError } from 'AppStore';
 import { getGeneFilterDefault } from './PatientViewPageStoreUtil';
 import { checkNonProfiledGenesExist } from '../PatientViewPageUtils';
+import { sleep } from 'shared/lib/TimeUtils';
 
 type PageMode = 'patient' | 'sample';
 
@@ -350,12 +351,13 @@ export class PatientViewPageStore {
 
     readonly samples = remoteData(
         {
-            invoke: () =>
-                fetchSamplesForPatient(
+            invoke: () => {
+                return fetchSamplesForPatient(
                     this.studyId,
                     this._patientId,
                     this.sampleId
-                ),
+                );
+            },
             onError: (err: Error) => {
                 this.appStore.siteErrors.push({
                     errorObj: err,
@@ -1112,7 +1114,7 @@ export class PatientViewPageStore {
         [sampleId: string]: GenePanelData;
     }>(
         {
-            await: () => [this.mutationMolecularProfileId],
+            await: () => [this.mutationMolecularProfileId, this.samples],
             invoke: async () => {
                 if (this.mutationMolecularProfileId.result) {
                     return fetchGenePanelData(
@@ -1145,7 +1147,7 @@ export class PatientViewPageStore {
         [sampleId: string]: GenePanelData;
     }>(
         {
-            await: () => [this.molecularProfileIdDiscrete],
+            await: () => [this.molecularProfileIdDiscrete, this.samples],
             invoke: async () => {
                 if (this.molecularProfileIdDiscrete.result) {
                     return fetchGenePanelData(
