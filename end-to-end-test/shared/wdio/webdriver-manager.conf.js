@@ -70,6 +70,7 @@ var config = {
                 args: [
                     '--disable-composited-antialiasing',
                     '--allow-insecure-localhost',
+                    '--no-sandbox',
                 ],
             },
 
