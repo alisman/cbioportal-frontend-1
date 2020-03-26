@@ -34,7 +34,7 @@ var config = {
     //     './specs/**/results.logic.spec.js'
     // ],
     specs: [
-        './remote/specs/core/comparisonTab.screenshot.spec.js', // './specs/**/screenshot.spec.js'
+        './remote/specs/**/*.screenshot.spec.js', // './specs/**/screenshot.spec.js'
     ],
 
     // Patterns to exclude.
