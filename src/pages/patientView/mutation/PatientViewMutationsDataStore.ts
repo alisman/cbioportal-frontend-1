@@ -3,6 +3,7 @@ import { Mutation } from 'cbioportal-ts-api-client';
 import { action, computed, observable } from 'mobx';
 import _ from 'lodash';
 import PatientViewUrlWrapper from '../PatientViewUrlWrapper';
+import { MutationStatus } from '../mutation/PatientViewMutationsTabUtils';
 
 function mutationMatch(d: Mutation[], id: Mutation) {
     return (
@@ -18,7 +19,24 @@ function mutationIdKey(m: Mutation) {
 export default class PatientViewMutationsDataStore extends SimpleGetterLazyMobXTableApplicationDataStore<
     Mutation[]
 > {
-    @observable.ref private mouseOverMutation: Readonly<Mutation> | null = null;
+    @observable tooltipModel: {
+        datum: {
+            mutationStatus: MutationStatus | null;
+            sampleId: string;
+            vaf: number;
+        } | null;
+        mutation: Mutation | null;
+        mouseEvent: React.MouseEvent<any> | null;
+        tooltipOnPoint: boolean;
+    } = {
+        datum: null,
+        mutation: null,
+        mouseEvent: null,
+        tooltipOnPoint: false,
+    };
+
+    @observable private mouseOverMutation: Readonly<Mutation> | null = null;
+
     private selectedMutationsMap = observable.map<Mutation>();
 
     public getMouseOverMutation() {
@@ -42,6 +60,26 @@ export default class PatientViewMutationsDataStore extends SimpleGetterLazyMobXT
     @action
     public setMouseOverMutation(m: Readonly<Mutation> | null) {
         this.mouseOverMutation = m;
+        this.tooltipModel.mutation = m;
+    }
+
+    @action
+    public setTooltipModel(
+        datum: {
+            sampleId: string;
+            vaf: number;
+            mutationStatus: MutationStatus;
+        } | null,
+        mutation: Mutation | null,
+        mouseEvent: React.MouseEvent<any>,
+        tooltipOnPoint: boolean
+    ) {
+        this.tooltipModel.mouseEvent = mouseEvent;
+        this.tooltipModel.mutation = mutation;
+        this.tooltipModel.datum = datum;
+        this.tooltipModel.tooltipOnPoint = tooltipOnPoint;
+        // mouseOverMutation is used to higlight mutations in the mutation table below
+        this.mouseOverMutation = mutation;
     }
 
     @action
