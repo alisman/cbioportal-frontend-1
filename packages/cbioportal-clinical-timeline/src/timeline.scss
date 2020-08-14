@@ -6,10 +6,20 @@ $borderColor: #ccc;
 
     min-height: 200px;
 
-    .tl-timeline-unzoom {
+    .tl-timeline-reset-buttons {
         position: absolute;
         top: -25px;
-        left: 50%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        div {
+            margin-right: 10px;
+        }
+        div:last-child {
+            margin-right: 0px;
+        }
     }
 }
 

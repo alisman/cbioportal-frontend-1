@@ -9,6 +9,7 @@ import _ from 'lodash';
 import { formatDate, REMOVE_FOR_DOWNLOAD_CLASSNAME } from './lib/helpers';
 import { TimelineStore } from './TimelineStore';
 import { renderStack } from './svg/renderStack';
+import { observer } from 'mobx-react';
 
 export interface ITimelineTrackProps {
     trackData: TimelineTrackSpecification;
@@ -201,7 +202,7 @@ function renderRange(pixelWidth: number) {
 
 export const TimelineTrack: React.FunctionComponent<
     ITimelineTrackProps
-> = function({
+> = observer(function({
     trackData,
     limit,
     getPosition,
@@ -309,7 +310,7 @@ export const TimelineTrack: React.FunctionComponent<
             />
         </g>
     );
-};
+});
 
 export const EventTooltipContent: React.FunctionComponent<{
     event: TimelineEvent;

@@ -21,7 +21,10 @@ const TRIM_TICK_THRESHHOLD = 4;
 
 const TICK_OFFSET = 30;
 
-export function getTrimmedTicks(ticks: TimelineTick[]): TimelineTick[] {
+export function getTrimmedTicks(
+    ticks: TimelineTick[],
+    expandedTrims: boolean
+): TimelineTick[] {
     let tickCache: TimelineTick[] = [];
     let offset = 0;
 
@@ -31,7 +34,9 @@ export function getTrimmedTicks(ticks: TimelineTick[]): TimelineTick[] {
             tickCache.push(tick);
             // see if we are going to collapse a new trim region
         } else {
-            if (tickCache.length >= TRIM_TICK_THRESHHOLD) {
+            const isTrim =
+                !expandedTrims && tickCache.length >= TRIM_TICK_THRESHHOLD;
+            if (isTrim) {
                 // we want to leave the first trimmed tick as a normal tick
                 // because it serves as an end to last tick region
                 // otherwise, it will appear as though points are inside the trimmed region
