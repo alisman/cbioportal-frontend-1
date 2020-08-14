@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import _ from 'lodash';
 import { observer } from 'mobx-react-lite';
+import { CoverageInformation } from '../../resultsView/ResultsViewPageStoreUtils';
+import { Sample } from 'cbioportal-ts-api-client';
+import PatientViewMutationsDataStore from '../mutation/PatientViewMutationsDataStore';
+import VAFChartControls from './VAFChartControls';
+import VAFChartWrapper from 'pages/patientView/timeline2/VAFChartWrapper';
 
 import 'cbioportal-clinical-timeline/dist/styles.css';
 
@@ -110,14 +115,27 @@ export interface ISampleMetaDeta {
 }
 
 export interface ITimeline2Props {
+    dataStore: PatientViewMutationsDataStore;
     data: ClinicalEvent[];
     caseMetaData: ISampleMetaDeta;
     sampleManager: SampleManager;
     width: number;
+    samples: Sample[];
+    mutationProfileId: string;
+    coverageInformation: CoverageInformation;
 }
 
 const TimelineWrapper: React.FunctionComponent<ITimeline2Props> = observer(
-    function({ data, caseMetaData, sampleManager, width }: ITimeline2Props) {
+    function({
+        dataStore,
+        data,
+        caseMetaData,
+        sampleManager,
+        width,
+        samples,
+        mutationProfileId,
+        coverageInformation,
+    }: ITimeline2Props) {
         const [events, setEvents] = useState<
             TimelineTrackSpecification[] | null
         >(null);
@@ -454,23 +472,38 @@ const TimelineWrapper: React.FunctionComponent<ITimeline2Props> = observer(
 
         if (store) {
             return (
-                <Timeline
-                    store={store}
-                    width={width}
-                    // customTracks={[
-                    //     {
-                    //         renderHeader: () => 'VAF',
-                    //         renderTrack: (store: TimelineStore) => (
-                    //             <VAFChartWrapper
-                    //                 store={store}
-                    //                 sampleMetaData={caseMetaData}
-                    //             />
-                    //         ),
-                    //         height: () => VAF_CHART_ROW_HEIGHT,
-                    //         labelForExport: 'VAF',
-                    //     },
-                    // ]}
-                />
+                <div>
+                    <Timeline
+                        store={store}
+                        width={width}
+                        customTracks={[
+                            {
+                                renderHeader: () => 'VAF',
+                                renderTrack: (store: TimelineStore) => (
+                                    <VAFChartWrapper
+                                        dataStore={dataStore}
+                                        store={store}
+                                        sampleMetaData={caseMetaData}
+                                        samples={samples}
+                                        mutationProfileId={mutationProfileId}
+                                        coverageInformation={
+                                            coverageInformation
+                                        }
+                                        sampleManager={sampleManager}
+                                    />
+                                ),
+                                height: (store: TimelineStore) => {
+                                    return store.vafChartHeight;
+                                },
+                                labelForExport: 'VAF',
+                            },
+                        ]}
+                    />
+                    <VAFChartControls
+                        store={store}
+                        sampleManager={sampleManager}
+                    />
+                </div>
             );
         } else {
             return <div />;

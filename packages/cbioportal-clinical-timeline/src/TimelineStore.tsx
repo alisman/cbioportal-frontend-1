@@ -12,7 +12,6 @@ import {
     getTrimmedTicks,
 } from './lib/helpers';
 import _ from 'lodash';
-import jQuery from 'jquery';
 import autobind from 'autobind-decorator';
 import * as React from 'react';
 import {
@@ -31,8 +30,59 @@ export class TimelineStore {
         events: TimelineEvent[];
         index: number;
     };
+    @observable groupByOption: Readonly<string> | null = null;
+    @observable onlyShowSelectedInVAFChart:
+        | Readonly<boolean>
+        | undefined = undefined;
+    @observable vafChartLogScale: Readonly<boolean> | undefined = undefined;
+    @observable vafChartYAxisToDataRange:
+        | Readonly<boolean>
+        | undefined = undefined;
+    @observable vafChartHeight: Readonly<number> = 240;
 
     @observable mousePosition = { x: 0, y: 0 };
+
+    @action
+    setVafChartHeight(value: number) {
+        this.vafChartHeight = value;
+    }
+
+    @action
+    setGroupByOption(value: string) {
+        this.groupByOption = value;
+    }
+
+    @action
+    setOnlyShowSelectedInVAFChart(value: boolean) {
+        this.onlyShowSelectedInVAFChart = value;
+    }
+
+    @action
+    setVafChartLogScale(value: boolean) {
+        this.vafChartLogScale = value;
+    }
+
+    @action
+    setVafChartYAxisToDataRange(value: boolean) {
+        this.vafChartYAxisToDataRange = value;
+    }
+
+    @computed get xPositionBySampleId(): { [sampleId: string]: number } {
+        let positionList: { [sampleId: string]: number } = {};
+        const samples = this.allItems.filter(
+            event => event.event.eventType === 'SPECIMEN'
+        );
+        samples.forEach((sample, i) => {
+            sample.event.attributes.forEach((attribute: any, i: number) => {
+                if (attribute.key === 'SAMPLE_ID') {
+                    positionList[attribute.value] = this.getPosition(
+                        sample
+                    )!.pixelLeft;
+                }
+            });
+        });
+        return positionList;
+    }
 
     @autobind
     @action
