@@ -130,7 +130,7 @@ export class TimelineStore {
                         {renderPoint(
                             [activeItem],
                             this.tooltipModel.track,
-                            TIMELINE_TRACK_HEIGHT
+                            TIMELINE_TRACK_HEIGHT / 2
                         )}
                     </g>
                 </svg>
