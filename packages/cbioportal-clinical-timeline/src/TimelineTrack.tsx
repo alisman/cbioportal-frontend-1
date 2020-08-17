@@ -4,7 +4,7 @@ import {
     TimelineTrackSpecification,
     TimelineTrackType,
 } from './types';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import _ from 'lodash';
 import { formatDate, REMOVE_FOR_DOWNLOAD_CLASSNAME } from './lib/helpers';
 import { TimelineStore } from './TimelineStore';
@@ -253,28 +253,13 @@ export const TimelineTrack: React.FunctionComponent<
             }
 
             return (
-                <g
-                    transform={
-                        position
-                            ? `translate(${position.pixelLeft} 0)`
-                            : undefined
-                    }
-                    onMouseMove={e => {
-                        store.setTooltipModel({
-                            track: trackData,
-                            events: itemGroup,
-                        });
-                        store.setMousePosition({
-                            x: e.pageX,
-                            y: e.pageY,
-                        });
-                    }}
-                    onClick={() => {
-                        store.nextTooltipEvent();
-                    }}
-                >
-                    {content}
-                </g>
+                <TimelineItemWithTooltip
+                    x={position && position.pixelLeft}
+                    store={store}
+                    track={trackData}
+                    events={itemGroup}
+                    content={content}
+                />
             );
         });
 
@@ -291,10 +276,13 @@ export const TimelineTrack: React.FunctionComponent<
                 y={0}
                 height={height}
                 width={width}
-                onMouseMove={() => {
+                /*onMouseMove={() => {
                     // hide tooltip when mouse over the background rect
-                    store.setTooltipModel(null);
-                }}
+                    if (tooltipUid !== null && !store.isTooltipPinned(tooltipUid)) {
+                        store.removeTooltip(tooltipUid);
+                        setTooltipUid(null);
+                    }
+                }}*/
             />
             {trackData.trackType === TimelineTrackType.LINE_CHART &&
                 renderLineChartLines(linePoints)}
@@ -311,6 +299,70 @@ export const TimelineTrack: React.FunctionComponent<
         </g>
     );
 });
+
+const TimelineItemWithTooltip: React.FunctionComponent<{
+    x: number | undefined;
+    store: TimelineStore;
+    track: TimelineTrackSpecification;
+    events: TimelineEvent[];
+    content: any;
+}> = function({ x, store, track, events, content }) {
+    const [tooltipUid, setTooltipUid] = useState<string | null>(null);
+
+    const transforms = [];
+    if (x) {
+        transforms.push(`translate(${x} 0)`);
+    }
+
+    function syncTooltipUid() {
+        if (tooltipUid && !store.doesTooltipExist(tooltipUid)) {
+            setTooltipUid(null);
+            return null;
+        }
+        return tooltipUid;
+    }
+
+    return (
+        <g
+            style={{ cursor: 'pointer' }}
+            transform={transforms.join(' ')}
+            onMouseMove={e => {
+                let uid = syncTooltipUid();
+
+                if (!uid) {
+                    uid = store.addTooltip({
+                        track,
+                        events,
+                    });
+
+                    setTooltipUid(uid);
+                }
+                store.setHoveredTooltipUid(uid);
+                store.setMousePosition({
+                    x: e.pageX,
+                    y: e.pageY,
+                });
+            }}
+            onMouseLeave={e => {
+                const uid = syncTooltipUid();
+
+                if (uid && !store.isTooltipPinned(uid)) {
+                    store.removeTooltip(uid);
+                    setTooltipUid(null);
+                }
+            }}
+            onClick={() => {
+                const uid = syncTooltipUid();
+
+                if (uid) {
+                    store.togglePinTooltip(uid);
+                }
+            }}
+        >
+            {content}
+        </g>
+    );
+};
 
 export const EventTooltipContent: React.FunctionComponent<{
     event: TimelineEvent;

@@ -15,6 +15,7 @@ import { Popover } from 'react-bootstrap';
 import { flattenTracks, sortNestedTracks } from './lib/helpers';
 import CustomTrack, { CustomTrackSpecification } from './CustomTrack';
 import { TICK_AXIS_HEIGHT } from './TickAxis';
+import { useObserver } from 'mobx-react-lite';
 
 export interface ITimelineTracks {
     store: TimelineStore;
@@ -64,31 +65,30 @@ export const TimelineTracks: React.FunctionComponent<
                         );
                     })}
             </g>
-            {store.tooltipContent &&
-                (() => {
-                    const placementLeft = store.mousePosition.x > width / 2;
-                    return (
-                        <Portal container={document.body}>
-                            <Popover
-                                arrowOffsetTop={17}
-                                placement={placementLeft ? 'left' : 'right'}
-                                style={{
-                                    transform: placementLeft
-                                        ? 'translate(-100%, 0)'
-                                        : '',
-                                }}
-                                className={'tl-timeline-tooltip'}
-                                positionLeft={
-                                    store.mousePosition.x +
-                                    (placementLeft ? -10 : 10)
-                                }
-                                positionTop={store.mousePosition.y - 17}
-                            >
-                                {store.tooltipContent}
-                            </Popover>
-                        </Portal>
-                    );
-                })()}
+            {store.tooltipModels.map(([uid, model]) => {
+                const position = model.position || store.mousePosition;
+                const placementLeft = position.x > width / 2;
+                return (
+                    <Portal container={document.body}>
+                        <Popover
+                            arrowOffsetTop={17}
+                            placement={placementLeft ? 'left' : 'right'}
+                            style={{
+                                transform: placementLeft
+                                    ? 'translate(-100%, 0)'
+                                    : '',
+                            }}
+                            className={'tl-timeline-tooltip'}
+                            positionLeft={
+                                position.x + (placementLeft ? -10 : 10)
+                            }
+                            positionTop={position.y - 17}
+                        >
+                            {store.getTooltipContent(uid, model)}
+                        </Popover>
+                    </Portal>
+                );
+            })}
         </>
     );
 });

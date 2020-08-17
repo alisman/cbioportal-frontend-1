@@ -40,7 +40,7 @@ const CustomTrack: React.FunctionComponent<ICustomTrackProps> = function({
                 width={width}
                 // hide tooltip when mouse over the background rect
                 onMouseMove={() => {
-                    store.setTooltipModel(null);
+                    //store.setTooltipModel(null); // TODO!
                 }}
             />
             {specification.renderTrack(store)}

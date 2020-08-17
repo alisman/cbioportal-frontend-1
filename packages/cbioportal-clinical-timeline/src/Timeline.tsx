@@ -195,23 +195,25 @@ const hoverCallback = (
 function bindToDOMEvents(store: TimelineStore, refs: any) {
     const keydown = function(e: JQuery.Event) {
         let preventDefault = false;
-        if (store.tooltipContent !== null) {
-            switch (e.which) {
-                case 37:
-                //left
-                case 40:
-                    //down
-                    store.prevTooltipEvent();
+        switch (e.which) {
+            case 37:
+            //left
+            case 40:
+                //down
+                if (store.prevTooltipEvent()) {
                     preventDefault = true;
-                    break;
-                case 38:
-                //up
-                case 39:
-                    //right
-                    store.nextTooltipEvent();
+                }
+                break;
+            case 38:
+            //up
+            case 39:
+            //right
+            case 32:
+                //spacebar
+                if (store.nextTooltipEvent()) {
                     preventDefault = true;
-                    break;
-            }
+                }
+                break;
         }
         if (preventDefault) {
             e.preventDefault();
@@ -225,8 +227,14 @@ function bindToDOMEvents(store: TimelineStore, refs: any) {
     };
     jQuery(window).on('resize', resize);
 
+    const mouseleave = function() {
+        store.removeAllTooltips();
+    };
+    jQuery('body').on('mouseleave', mouseleave);
+
     return function() {
         jQuery(window).off('resize', resize);
+        jQuery('body').off('mouseleave', mouseleave);
         jQuery(document).off('keydown', keydown);
     };
 }

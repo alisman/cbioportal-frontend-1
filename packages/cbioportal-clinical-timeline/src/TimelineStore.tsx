@@ -22,6 +22,15 @@ import {
     TIMELINE_TRACK_HEIGHT,
 } from './TimelineTrack';
 
+type TooltipModel = {
+    track: TimelineTrackSpecification;
+    events: TimelineEvent[];
+    index: number;
+
+    // if `position` is undefined, then show it at mousePosition.
+    position?: { x: number; y: number };
+};
+
 export class TimelineStore {
     @observable private _expandedTrims = false;
     @observable.ref _data: TimelineTrackSpecification[];
@@ -63,61 +72,118 @@ export class TimelineStore {
         this._expandedTrims = !this._expandedTrims;
     }
 
-    @observable private tooltipModel = null as null | {
-        track: TimelineTrackSpecification;
-        events: TimelineEvent[];
-        index: number;
-    };
+    private tooltipUidCounter = 0;
+    private tooltipModelsByUid = observable.map<TooltipModel>();
+    @observable private _lastHoveredTooltipUid: string | null = null;
+    @action
+    public setHoveredTooltipUid(uid: string | null) {
+        this._lastHoveredTooltipUid = uid;
+    }
+    @computed get hoveredTooltipUid() {
+        if (
+            this._lastHoveredTooltipUid &&
+            this.doesTooltipExist(this._lastHoveredTooltipUid)
+        ) {
+            return this._lastHoveredTooltipUid;
+        } else if (this.tooltipModelsByUid.size === 1) {
+            return this.tooltipModelsByUid.keys()[0];
+        } else {
+            return null;
+        }
+    }
 
     @observable mousePosition = { x: 0, y: 0 };
 
+    doesTooltipExist(uid: string) {
+        return this.tooltipModelsByUid.has(uid);
+    }
+
+    @computed get tooltipModels() {
+        return this.tooltipModelsByUid.entries();
+    }
+
     @autobind
     @action
-    setTooltipModel(
-        model: null | {
-            track: TimelineTrackSpecification;
-            events: TimelineEvent[];
+    addTooltip(model: Pick<TooltipModel, 'track' | 'events'>) {
+        const tooltipUid = (this.tooltipUidCounter++).toString();
+        this.tooltipModelsByUid.set(tooltipUid, {
+            ...model,
+            index: 0,
+        });
+        return tooltipUid;
+    }
+
+    @autobind
+    @action
+    removeTooltip(tooltipUid: string) {
+        this.tooltipModelsByUid.delete(tooltipUid);
+        if (tooltipUid === this.hoveredTooltipUid) {
+            this.setHoveredTooltipUid(null);
         }
-    ) {
-        this.tooltipModel = model
-            ? {
-                  ...model,
-                  index: 0,
-              }
-            : null;
+    }
+
+    @autobind
+    @action
+    removeAllTooltips() {
+        this.tooltipModelsByUid.clear();
+    }
+
+    @autobind
+    @action
+    togglePinTooltip(tooltipUid: string) {
+        const model = this.tooltipModelsByUid.get(tooltipUid)!;
+        if (model.position) {
+            model.position = undefined;
+        } else {
+            model.position = { ...this.mousePosition };
+        }
+    }
+
+    isTooltipPinned(tooltipUid: string) {
+        return !!this.tooltipModelsByUid.get(tooltipUid)!.position;
     }
 
     @autobind
     @action
     nextTooltipEvent() {
-        this.tooltipModel!.index =
-            (this.tooltipModel!.index + 1) % this.tooltipModel!.events.length;
+        if (!this.hoveredTooltipUid) {
+            return false;
+        }
+
+        const model = this.tooltipModelsByUid.get(this.hoveredTooltipUid)!;
+        model.index = (model.index + 1) % model.events.length;
+
+        return true;
     }
 
     @autobind
     @action
     prevTooltipEvent() {
-        let nextIndex = this.tooltipModel!.index - 1;
-        while (nextIndex < 0) {
-            nextIndex += this.tooltipModel!.events.length;
+        if (!this.hoveredTooltipUid) {
+            return false;
         }
-        this.tooltipModel!.index = nextIndex;
+
+        const model = this.tooltipModelsByUid.get(this.hoveredTooltipUid)!;
+
+        let nextIndex = model.index - 1;
+        while (nextIndex < 0) {
+            nextIndex += model.events.length;
+        }
+        model.index = nextIndex;
+
+        return true;
     }
 
-    @computed get tooltipContent() {
-        if (!this.tooltipModel) {
-            return null;
-        }
-
-        const activeItem = this.tooltipModel.events[this.tooltipModel.index];
+    public getTooltipContent(uid: string, tooltipModel: TooltipModel) {
+        const activeItem = tooltipModel.events[tooltipModel.index];
         let content;
-        if (this.tooltipModel.track.renderTooltip) {
-            content = this.tooltipModel.track.renderTooltip(activeItem);
+        if (tooltipModel.track.renderTooltip) {
+            content = tooltipModel.track.renderTooltip(activeItem);
         } else {
             content = <EventTooltipContent event={activeItem} />;
         }
 
-        const multipleItems = this.tooltipModel.events.length > 1;
+        const multipleItems = tooltipModel.events.length > 1;
         let point = null;
         if (multipleItems) {
             point = (
@@ -129,7 +195,7 @@ export class TimelineStore {
                     <g transform={`translate(${TIMELINE_TRACK_HEIGHT / 2} 0)`}>
                         {renderPoint(
                             [activeItem],
-                            this.tooltipModel.track,
+                            tooltipModel.track,
                             TIMELINE_TRACK_HEIGHT / 2
                         )}
                     </g>
@@ -138,7 +204,10 @@ export class TimelineStore {
         }
 
         return (
-            <div>
+            <div
+                onMouseEnter={() => this.setHoveredTooltipUid(uid)}
+                onMouseMove={() => this.setHoveredTooltipUid(uid)}
+            >
                 {multipleItems && (
                     <div
                         style={{
@@ -150,9 +219,13 @@ export class TimelineStore {
                         }}
                     >
                         {point}
-                        {this.tooltipModel.index + 1} of{' '}
-                        {this.tooltipModel.events.length}. Click or use arrow
-                        keys to see others.
+                        {uid === this.hoveredTooltipUid && (
+                            <span>
+                                {tooltipModel.index + 1} of{' '}
+                                {tooltipModel.events.length}. Use spacebar or
+                                arrow keys to see others.
+                            </span>
+                        )}
                     </div>
                 )}
                 <div>{content}</div>

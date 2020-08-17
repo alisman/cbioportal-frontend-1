@@ -114,6 +114,10 @@ $borderColor: #ccc;
 .tl-timeline-tooltip {
     background-color: #000000 !important;
 
+    &:hover {
+        z-index: 1070 !important;
+    }
+
     .arrow {
         border-right-color: #000000 !important;
         border-left-color: #000000 !important;
