@@ -214,6 +214,11 @@ function bindToDOMEvents(store: TimelineStore, refs: any) {
                     preventDefault = true;
                 }
                 break;
+            case 27:
+                // escape
+                store.removeAllTooltips();
+                preventDefault = true;
+                break;
         }
         if (preventDefault) {
             e.preventDefault();
