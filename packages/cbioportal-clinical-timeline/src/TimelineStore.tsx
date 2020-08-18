@@ -128,6 +128,16 @@ export class TimelineStore {
         this.tooltipModelsByUid.clear();
     }
 
+    @action
+    removeAllTooltipsExcept(tooltipUid: string) {
+        const uids = this.tooltipModelsByUid.keys();
+        for (const uid of uids) {
+            if (uid !== tooltipUid) {
+                this.tooltipModelsByUid.delete(uid);
+            }
+        }
+    }
+
     @autobind
     @action
     togglePinTooltip(tooltipUid: string) {
@@ -207,6 +217,7 @@ export class TimelineStore {
             <div
                 onMouseEnter={() => this.setHoveredTooltipUid(uid)}
                 onMouseMove={() => this.setHoveredTooltipUid(uid)}
+                onClick={() => this.removeAllTooltipsExcept(uid)}
             >
                 {multipleItems && (
                     <div
