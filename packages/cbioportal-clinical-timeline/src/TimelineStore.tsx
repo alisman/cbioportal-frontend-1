@@ -23,6 +23,7 @@ import {
 } from './TimelineTrack';
 
 export class TimelineStore {
+    @observable private _expandedTrims = false;
     @observable.ref _data: TimelineTrackSpecification[];
     private collapsedTracks = observable.map();
 
@@ -51,6 +52,15 @@ export class TimelineStore {
 
     @autobind isTrackCollapsed(trackUid: string) {
         return this.collapsedTracks.has(trackUid);
+    }
+
+    @computed get expandedTrims() {
+        return this._expandedTrims;
+    }
+    @autobind
+    @action
+    public toggleExpandedTrims() {
+        this._expandedTrims = !this._expandedTrims;
     }
 
     @observable private tooltipModel = null as null | {
@@ -120,7 +130,7 @@ export class TimelineStore {
                         {renderPoint(
                             [activeItem],
                             this.tooltipModel.track,
-                            TIMELINE_TRACK_HEIGHT
+                            TIMELINE_TRACK_HEIGHT / 2
                         )}
                     </g>
                 </svg>
@@ -232,7 +242,7 @@ export class TimelineStore {
     @computed get ticks() {
         const fullTicks = getFullTicks(this.allItems, TickIntervalEnum.YEAR);
 
-        return getTrimmedTicks(fullTicks);
+        return getTrimmedTicks(fullTicks, this.expandedTrims);
     }
 
     @computed get lastTick() {

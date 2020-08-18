@@ -293,19 +293,30 @@ const Timeline: React.FunctionComponent<ITimelineProps> = observer(function({
 
     return (
         <div ref={refs.wrapper} className={'tl-timeline-wrapper'}>
-            {store.zoomBounds && (
-                <div className={'tl-timeline-unzoom'}>
-                    <button
-                        className={'btn btn-xs'}
-                        onClick={() => {
-                            store.setZoomBounds();
-                        }}
-                    >
-                        reset zoom
-                    </button>
-                </div>
-            )}
-
+            <div className={'tl-timeline-reset-buttons'}>
+                {store.zoomBounds && (
+                    <div className={'tl-timeline-unzoom'}>
+                        <button
+                            className={'btn btn-xs'}
+                            onClick={() => {
+                                store.setZoomBounds();
+                            }}
+                        >
+                            reset zoom
+                        </button>
+                    </div>
+                )}
+                {store.expandedTrims && (
+                    <div>
+                        <button
+                            className={'btn btn-xs'}
+                            onClick={store.toggleExpandedTrims}
+                        >
+                            reset axis
+                        </button>
+                    </div>
+                )}
+            </div>
             <style ref={refs.hoverStyleTag} />
             <div style={{ flexBasis: width - 28, display: 'flex' }}>
                 {' '}

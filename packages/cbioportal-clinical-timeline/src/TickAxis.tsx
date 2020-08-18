@@ -18,7 +18,7 @@ const TICK_LABEL_STYLE: any = {
 const MAJOR_TICK_HEIGHT = 6;
 const MINOR_TICK_HEIGHT = 3;
 
-function makeSquiggle() {
+function makeSquiggle(onClick: () => void) {
     const points = [
         'M0,5',
         'L2.5,8',
@@ -32,12 +32,23 @@ function makeSquiggle() {
     ];
     return (
         <g transform={`translate(-6 ${TICK_AXIS_HEIGHT - 6})`}>
+            {/* this rect visually blocks the axis */}
             <rect y={5} height={1} width={20} fill={'#ffffff'} />
+            {/* this rect is a mouse hitzone */}
+            <rect
+                y={0}
+                height={10}
+                width={20}
+                fillOpacity={0}
+                style={{ cursor: 'pointer' }}
+                onClick={onClick}
+            />
             <path
                 d={points.join('')}
                 stroke={TICK_AXIS_COLOR}
-                stroke-width="1"
+                strokeWidth="1"
                 fill="none"
+                pointerEvents={'none'} // dont block mouse from clicking on rect
             />
         </g>
     );
@@ -77,7 +88,7 @@ const TickAxis: React.FunctionComponent<ITickAxisProps> = observer(function({
                     const minorTicks: JSX.Element[] = [];
 
                     if (tick.isTrim) {
-                        content = makeSquiggle();
+                        content = makeSquiggle(store.toggleExpandedTrims);
                     } else {
                         const count = startPoint / store.tickInterval;
                         const unit =
