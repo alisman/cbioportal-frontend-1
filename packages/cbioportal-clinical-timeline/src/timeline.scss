@@ -113,6 +113,8 @@ $borderColor: #ccc;
 
 .tl-timeline-tooltip {
     background-color: #000000 !important;
+    max-width: 480px !important;
+    min-width: 300px;
 
     &:hover {
         z-index: 1070 !important;
