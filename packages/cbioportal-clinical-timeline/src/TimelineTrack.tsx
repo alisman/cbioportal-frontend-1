@@ -276,13 +276,6 @@ export const TimelineTrack: React.FunctionComponent<
                 y={0}
                 height={height}
                 width={width}
-                /*onMouseMove={() => {
-                    // hide tooltip when mouse over the background rect
-                    if (tooltipUid !== null && !store.isTooltipPinned(tooltipUid)) {
-                        store.removeTooltip(tooltipUid);
-                        setTooltipUid(null);
-                    }
-                }}*/
             />
             {trackData.trackType === TimelineTrackType.LINE_CHART &&
                 renderLineChartLines(linePoints)}
