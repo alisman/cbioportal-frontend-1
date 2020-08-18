@@ -30,6 +30,8 @@ export class TimelineStore {
         this._data = tracks;
     }
 
+    @observable enableCollapseTrack = false;
+
     @computed get data(): {
         track: TimelineTrackSpecification;
         indent: number;

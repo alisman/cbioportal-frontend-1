@@ -50,23 +50,25 @@ const TrackHeader: React.FunctionComponent<ITrackHeaderProps> = function({
                 >
                     {getTrackLabel(track)}
                 </span>
-                {track.tracks && track.tracks.length > 0 && (
-                    <button
-                        onClick={collapseCallback}
-                        className={'btn btn-xs btn-default'}
-                        style={{
-                            fontSize: 10,
-                            lineHeight: 0.5,
-                            padding: 3,
-                        }}
-                    >
-                        {store.isTrackCollapsed(track.uid) ? (
-                            <i className={'fa fa-plus fa-sm'} />
-                        ) : (
-                            <i className={'fa fa-minus fa-sm'} />
-                        )}
-                    </button>
-                )}
+                {store.enableCollapseTrack &&
+                    track.tracks &&
+                    track.tracks.length > 0 && (
+                        <button
+                            onClick={collapseCallback}
+                            className={'btn btn-xs btn-default'}
+                            style={{
+                                fontSize: 10,
+                                lineHeight: 0.5,
+                                padding: 3,
+                            }}
+                        >
+                            {store.isTrackCollapsed(track.uid) ? (
+                                <i className={'fa fa-plus fa-sm'} />
+                            ) : (
+                                <i className={'fa fa-minus fa-sm'} />
+                            )}
+                        </button>
+                    )}
             </div>
         </>
     ));
