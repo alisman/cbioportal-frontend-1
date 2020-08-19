@@ -227,35 +227,43 @@ const TimelineWrapper: React.FunctionComponent<ITimeline2Props> = observer(
                                 if (sampleWithClinicalData) {
                                     return (
                                         <table>
-                                            <tr>
-                                                <th>SAMPLE ID</th>
-                                                <td>
-                                                    {sampleWithClinicalData.id}
-                                                </td>
-                                            </tr>
-                                            {sampleWithClinicalData.clinicalData.map(
-                                                d => {
-                                                    return (
-                                                        <tr>
-                                                            <th>
-                                                                {d.clinicalAttributeId
-                                                                    .toUpperCase()
-                                                                    .replace(
-                                                                        /_/g,
-                                                                        ' '
-                                                                    )}
-                                                            </th>
-                                                            <td>{d.value}</td>
-                                                        </tr>
-                                                    );
-                                                }
-                                            )}
-                                            <tr>
-                                                <th>START DATE</th>
-                                                <td className={'nowrap'}>
-                                                    {formatDate(event.start)}
-                                                </td>
-                                            </tr>
+                                            <tbody>
+                                                <tr>
+                                                    <th>SAMPLE ID</th>
+                                                    <td>
+                                                        {
+                                                            sampleWithClinicalData.id
+                                                        }
+                                                    </td>
+                                                </tr>
+                                                {sampleWithClinicalData.clinicalData.map(
+                                                    d => {
+                                                        return (
+                                                            <tr>
+                                                                <th>
+                                                                    {d.clinicalAttributeId
+                                                                        .toUpperCase()
+                                                                        .replace(
+                                                                            /_/g,
+                                                                            ' '
+                                                                        )}
+                                                                </th>
+                                                                <td>
+                                                                    {d.value}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    }
+                                                )}
+                                                <tr>
+                                                    <th>START DATE</th>
+                                                    <td className={'nowrap'}>
+                                                        {formatDate(
+                                                            event.start
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
                                         </table>
                                     );
                                 } else {

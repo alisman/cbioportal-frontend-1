@@ -363,32 +363,34 @@ export const EventTooltipContent: React.FunctionComponent<{
     return (
         <div>
             <table>
-                {_.map(event.event.attributes, (att: any) => {
-                    return (
-                        <tr>
-                            <th>{att.key.replace('_', ' ')}</th>
-                            <td>{att.value}</td>
-                        </tr>
-                    );
-                })}
-                <tr>
-                    <th>START DATE:</th>
-                    <td className={'nowrap'}>
-                        {formatDate(
-                            event.event.startNumberOfDaysSinceDiagnosis
-                        )}
-                    </td>
-                </tr>
-                {event.event.endNumberOfDaysSinceDiagnosis && (
+                <tbody>
+                    {_.map(event.event.attributes, (att: any) => {
+                        return (
+                            <tr>
+                                <th>{att.key.replace('_', ' ')}</th>
+                                <td>{att.value}</td>
+                            </tr>
+                        );
+                    })}
                     <tr>
-                        <th>END DATE:</th>
+                        <th>START DATE:</th>
                         <td className={'nowrap'}>
                             {formatDate(
-                                event.event.endNumberOfDaysSinceDiagnosis
+                                event.event.startNumberOfDaysSinceDiagnosis
                             )}
                         </td>
                     </tr>
-                )}
+                    {event.event.endNumberOfDaysSinceDiagnosis && (
+                        <tr>
+                            <th>END DATE:</th>
+                            <td className={'nowrap'}>
+                                {formatDate(
+                                    event.event.endNumberOfDaysSinceDiagnosis
+                                )}
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
             </table>
         </div>
     );

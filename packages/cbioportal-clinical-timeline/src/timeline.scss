@@ -112,7 +112,7 @@ $borderColor: #ccc;
 }
 
 .tl-timeline-tooltip {
-    background-color: #000000 !important;
+    //background-color: #000000 !important;
     max-width: 480px !important;
     min-width: 300px;
 
@@ -120,20 +120,20 @@ $borderColor: #ccc;
         z-index: 1070 !important;
     }
 
-    .arrow {
-        border-right-color: #000000 !important;
-        border-left-color: #000000 !important;
-
-        &:after {
-            border-right-color: #000000 !important;
-            border-left-color: #000000 !important;
-        }
-    }
+    //.arrow {
+    //    border-right-color: #000000 !important;
+    //    border-left-color: #000000 !important;
+    //
+    //    &:after {
+    //        border-right-color: #000000 !important;
+    //        border-left-color: #000000 !important;
+    //    }
+    //}
     .popover-content {
         padding: 2px 5px !important;
         border: none;
-        background-color: #000000;
-        color: #fff;
+        //background-color: #000000;
+        //color: #fff;
         font-size: 10px;
 
         td,

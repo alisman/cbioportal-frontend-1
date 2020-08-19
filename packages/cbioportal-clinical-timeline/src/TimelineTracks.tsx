@@ -78,7 +78,7 @@ export const TimelineTracks: React.FunctionComponent<
                                     ? 'translate(-100%, 0)'
                                     : '',
                             }}
-                            className={'tl-timeline-tooltip'}
+                            className={'tl-timeline-tooltip cbioTooltip'}
                             positionLeft={
                                 position.x + (placementLeft ? -10 : 10)
                             }
