@@ -19,7 +19,6 @@ import {
 
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
 import SampleManager from 'pages/patientView/SampleManager';
-import { downloadZippedTracks } from 'pages/patientView/timeline/timelineTSV';
 import {
     buildBaseConfig,
     configureGenieTimeline,

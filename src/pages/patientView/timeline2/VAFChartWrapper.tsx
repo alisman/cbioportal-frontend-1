@@ -17,7 +17,6 @@ import {
 import SampleManager, {
     clinicalValueToSamplesMap,
 } from 'pages/patientView/SampleManager';
-import { downloadZippedTracks } from 'pages/patientView/timeline/timelineTSV';
 import {
     buildBaseConfig,
     configureGenieTimeline,
@@ -41,6 +40,7 @@ import {
 } from 'cbioportal-frontend-commons';
 import { makeUniqueColorGetter } from 'shared/components/plots/PlotUtils';
 import { MultipleSampleMarker } from './SampleMarker';
+import { downloadZippedTracks } from 'pages/patientView/timeline2/timelineDataUtils';
 
 export interface ISampleMetaDeta {
     color: { [sampleId: string]: string };
