@@ -33,6 +33,7 @@ import {
     IPoint,
     numLeadingDecimalZeros,
     yValueScaleFunction,
+    minimalDistinctTickStrings,
 } from './VAFChartUtils';
 import { VAFChartHeader } from './VAFChartHeader';
 import {
@@ -123,14 +124,18 @@ export default class VAFChartWrapper extends React.Component<
     }
 
     @computed get ticks(): { label: string; value: number; offset: number }[] {
-        const tickmarkValues = getYAxisTickmarks(
+        let tickmarkValues = getYAxisTickmarks(
             this.minYTickmarkValue,
             this.maxYTickmarkValue
         );
-        const numDecimals = numLeadingDecimalZeros(this.minYTickmarkValue) + 1;
-        return _.map(tickmarkValues, (v: number) => {
+        const labels = minimalDistinctTickStrings(tickmarkValues);
+        const ticksHasDuplicates = tickmarkValues.length !== labels.length;
+        if (ticksHasDuplicates) {
+            tickmarkValues = labels.map(label => Number(label));
+        }
+        return _.map(tickmarkValues, (v: number, indx: number) => {
             return {
-                label: v.toFixed(numDecimals),
+                label: labels[indx],
                 value: v,
                 offset: this.scaleYValue(v),
             };
@@ -412,11 +417,13 @@ export default class VAFChartWrapper extends React.Component<
         return _.sum([this.wrapperStore.dataHeight, footerHeight]);
     }
 
-    render() {
-        if (!this.store || !this.wrapperStore) return null;
-
+    @computed get customTracks() {
         const mouseOverMutation = this.props.dataStore.mouseOverMutation;
         const selectedMutations = this.props.dataStore.selectedMutations;
+        const lineData = this.scaledAndColoredLineData;
+        const height = this.vafChartHeight;
+        const headerWidth =
+            this.numGroupByGroups > 0 ? 150 : this.props.headerWidth;
 
         const vafPlotTrack = {
             renderHeader: (store: TimelineStore) => (
@@ -438,17 +445,21 @@ export default class VAFChartWrapper extends React.Component<
                     onlyShowSelectedInVAFChart={
                         this.wrapperStore.onlyShowSelectedInVAFChart
                     }
-                    lineData={this.scaledAndColoredLineData}
-                    height={this.vafChartHeight}
+                    lineData={lineData}
+                    height={height}
                     width={this.store.pixelWidth}
                 />
             ),
             disableHover: true,
-            height: (store: TimelineStore) => this.vafChartHeight,
+            height: (store: TimelineStore) => height,
             labelForExport: 'VAF',
         } as CustomTrackSpecification;
 
-        let customTracks = [vafPlotTrack].concat(this.sampleIconsTracks);
+        return [vafPlotTrack].concat(this.sampleIconsTracks);
+    }
+
+    render() {
+        if (!this.store || !this.wrapperStore) return null;
 
         return (
             <>
@@ -471,7 +482,7 @@ export default class VAFChartWrapper extends React.Component<
                         hideLabels={false}
                         hideXAxis={this.wrapperStore.showSequentialMode}
                         visibleTracks={[]}
-                        customTracks={customTracks}
+                        customTracks={this.customTracks}
                         headerWidth={
                             this.numGroupByGroups > 0
                                 ? 150
