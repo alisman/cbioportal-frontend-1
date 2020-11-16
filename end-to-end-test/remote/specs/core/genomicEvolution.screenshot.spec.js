@@ -148,9 +148,29 @@ describe('Patient View Genomic Evolution tab screenshot tests', function() {
     it('pvge heatmap hide labels', function() {
         browser.click('input[data-test="HeatmapTranspose"]');
         browser.pause(2000); // give time to untranspose
+
+        browser.execute(function() {
+            $("<div id='blockUI'></div>")
+                .appendTo('body')
+                .css({
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'yellow',
+                    zIndex: 999999999,
+                });
+        });
+
         const res = checkElementWithMouseDisabled('div#MutationHeatmap', 0, {
             hide: ['.qtip', '.dropdown-menu'],
         });
+
+        browser.execute(function() {
+            $('#blockUI').remove();
+        });
+
         assertScreenShotMatch(res);
     });
 });
