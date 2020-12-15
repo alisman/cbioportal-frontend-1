@@ -1,3 +1,41 @@
+const { join } = require('path');
+const fs = require('fs');
+var path = require('path');
+var VisualRegressionCompare = require('wdio-novus-visual-regression-service/compare');
+var getScreenshotName = require('./getScreenshotName');
+
+const debug = process.env.DEBUG;
+const defaultTimeoutInterval = 180000;
+var defaultMaxInstances = 3;
+
+var diffDir = process.env.SCREENSHOT_DIRECTORY + '/diff' || 'screenshots/diff/';
+var refDir =
+    process.env.SCREENSHOT_DIRECTORY + '/reference' || 'screenshots/reference/';
+var screenDir =
+    process.env.SCREENSHOT_DIRECTORY + '/screen' || 'screenshots/screen/';
+var errorDir = process.env.SCREENSHOT_DIRECTORY + '/error' || './errorShots/';
+
+const LocalCompare = new VisualRegressionCompare.LocalCompare({
+    referenceName: getScreenshotName(path.join(process.cwd(), refDir)),
+    screenshotName: getScreenshotName(path.join(process.cwd(), screenDir)),
+    diffName: getScreenshotName(path.join(process.cwd(), diffDir)),
+    misMatchTolerance: 0.01,
+});
+
+const oldProcessScreenshot = LocalCompare.processScreenshot;
+LocalCompare.processScreenshot = async function(context, base64Screenshot) {
+    const screenshotPath = this.getScreenshotFile(context);
+    const referencePath = this.getReferencefile(context);
+    const referenceExists = await fs.existsSync(referencePath);
+    if (referenceExists === false) {
+        return {
+            ...this.createResultReport(1000, false, true),
+            referenceExists,
+        };
+    }
+    return oldProcessScreenshot.apply(this, arguments);
+};
+
 exports.config = {
     //
     // ====================
@@ -16,7 +54,7 @@ exports.config = {
     // NPM script (see https://docs.npmjs.com/cli/run-script) then the current working
     // directory is where your package.json resides, so `wdio` will be called from there.
     //
-    specs: ['./basic.js'],
+    specs: ['remote/specs/core/screenshot.spec.js'],
     // Patterns to exclude.
     exclude: [
         // 'path/to/excluded/files'
@@ -51,13 +89,21 @@ exports.config = {
             maxInstances: 5,
             //
             browserName: 'chrome',
+            'goog:chromeOptions': {
+                args: [
+                    '--disable-composited-antialiasing',
+                    '--allow-insecure-localhost',
+                ],
+            },
             acceptInsecureCerts: true,
+            acceptSslCerts: true,
             // If outputDir is provided WebdriverIO can capture driver session logs
             // it is possible to configure which logTypes to include/exclude.
             // excludeDriverLogs: ['*'], // pass '*' to exclude all driver session logs
             // excludeDriverLogs: ['bugreport', 'server'],
         },
     ],
+
     //
     // ===================
     // Test Configurations
@@ -105,7 +151,45 @@ exports.config = {
     // Services take over a specific job you don't want to take care of. They enhance
     // your test setup with almost no effort. Unlike plugins, they don't add new
     // commands. Instead, they hook themselves up into the test process.
-    services: ['chromedriver'],
+    services: [
+        // ['image-comparison',
+        // // The options
+        // {
+        //     // Some options, see the docs for more
+        //     baselineFolder: join(process.cwd(),'./screenshots', '/baseline'),
+        //     formatImageName: 'aaron',
+        //     screenshotPath: join(process.cwd(), './screenshots', '/screen'),
+        //     savePerInstance: true,
+        //     autoSaveBaseline: false,
+        //     blockOutStatusBar: true,
+        //     blockOutToolBar: true,
+        //     // NOTE: When you are testing a hybrid app please use this setting
+        //     isHybridApp: true,
+        //     // Options for the tabbing image
+        //     tabbableOptions:{
+        //         circle:{
+        //             size: 18,
+        //             fontSize: 18,
+        //             // ...
+        //         },
+        //         line:{
+        //             color: '#ff221a', // hex-code or for example words like `red|black|green`
+        //             width: 3,
+        //         },
+        //     }
+        //     // ... more options
+        // }],
+
+        [
+            'novus-visual-regression',
+            {
+                compare: LocalCompare,
+                viewportChangePause: 300,
+                viewports: [{ width: 1600, height: 1000 }],
+                orientations: ['landscape', 'portrait'],
+            },
+        ],
+    ],
 
     // Framework you want to run your specs with.
     // The following are supported: Mocha, Jasmine, and Cucumber
@@ -178,8 +262,16 @@ exports.config = {
      * @param {Array.<String>} specs        List of spec file paths that are to be run
      * @param {Object}         browser      instance of created browser/device session
      */
-    // before: function (capabilities, specs) {
-    // },
+    before: function(capabilities, specs) {
+        console.log('hello and welcome');
+        const oldFunc = browser.checkElement;
+
+        console.log(oldFunc);
+        // browser.addCommand('checkElement', function(...args){
+        //     console.log("shmooo");
+        //     return oldFunc.apply(this,args);
+        // });
+    },
     /**
      * Runs before a WebdriverIO command gets executed.
      * @param {String} commandName hook command name
@@ -192,6 +284,16 @@ exports.config = {
      * @param {Object} suite suite details
      */
     // beforeSuite: function (suite) {
+    //     console.log("dood");
+    //     console.log(browser.checkElement);
+    //
+    //     const oldFunc = browser.checkElement;
+    //
+    //     browser.checkElement = function(one){
+    //         console.log(this.currentTest);
+    //         console.log("snoop");
+    //         return oldFunc.apply(this, arguments);
+    //     }
     // },
     /**
      * Function to be executed before a test (in Mocha/Jasmine) starts.
