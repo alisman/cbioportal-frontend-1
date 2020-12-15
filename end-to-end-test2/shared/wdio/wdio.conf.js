@@ -22,19 +22,23 @@ const LocalCompare = new VisualRegressionCompare.LocalCompare({
     misMatchTolerance: 0.01,
 });
 
-const oldProcessScreenshot = LocalCompare.processScreenshot;
-LocalCompare.processScreenshot = async function(context, base64Screenshot) {
-    const screenshotPath = this.getScreenshotFile(context);
-    const referencePath = this.getReferencefile(context);
-    const referenceExists = await fs.existsSync(referencePath);
-    if (referenceExists === false) {
-        return {
-            ...this.createResultReport(1000, false, true),
-            referenceExists,
-        };
-    }
-    return oldProcessScreenshot.apply(this, arguments);
-};
+function proxyComparisonMethod(target) {
+    const oldProcessScreenshot = target.processScreenshot;
+    LocalCompare.processScreenshot = async function(context, base64Screenshot) {
+        const screenshotPath = this.getScreenshotFile(context);
+        const referencePath = this.getReferencefile(context);
+        const referenceExists = await fs.existsSync(referencePath);
+        if (referenceExists === false) {
+            return {
+                ...this.createResultReport(1000, false, true),
+                referenceExists,
+            };
+        }
+        return oldProcessScreenshot.apply(this, arguments);
+    };
+}
+
+proxyComparisonMethod(LocalCompare);
 
 exports.config = {
     //
@@ -75,7 +79,7 @@ exports.config = {
     // and 30 processes will get spawned. The property handles how many capabilities
     // from the same test should run tests.
     //
-    maxInstances: 10,
+    maxInstances: debug ? 1 : defaultMaxInstances,
     //
     // If you have trouble getting all important capabilities together, check out the
     // Sauce Labs platform configurator - a great tool to configure your capabilities:
@@ -111,7 +115,7 @@ exports.config = {
     // Define all options that are relevant for the WebdriverIO instance here
     //
     // Level of logging verbosity: trace | debug | info | warn | error | silent
-    logLevel: 'info',
+    logLevel: 'error',
     //
     // Set specific log levels per logger
     // loggers:
@@ -152,34 +156,6 @@ exports.config = {
     // your test setup with almost no effort. Unlike plugins, they don't add new
     // commands. Instead, they hook themselves up into the test process.
     services: [
-        // ['image-comparison',
-        // // The options
-        // {
-        //     // Some options, see the docs for more
-        //     baselineFolder: join(process.cwd(),'./screenshots', '/baseline'),
-        //     formatImageName: 'aaron',
-        //     screenshotPath: join(process.cwd(), './screenshots', '/screen'),
-        //     savePerInstance: true,
-        //     autoSaveBaseline: false,
-        //     blockOutStatusBar: true,
-        //     blockOutToolBar: true,
-        //     // NOTE: When you are testing a hybrid app please use this setting
-        //     isHybridApp: true,
-        //     // Options for the tabbing image
-        //     tabbableOptions:{
-        //         circle:{
-        //             size: 18,
-        //             fontSize: 18,
-        //             // ...
-        //         },
-        //         line:{
-        //             color: '#ff221a', // hex-code or for example words like `red|black|green`
-        //             width: 3,
-        //         },
-        //     }
-        //     // ... more options
-        // }],
-
         [
             'novus-visual-regression',
             {
@@ -190,6 +166,37 @@ exports.config = {
             },
         ],
     ],
+
+    // FROM OLD webdriver config
+    // capabilities: [
+    //     {
+    //         //browserName: 'chrome',
+    //         chromeOptions: {
+    //             args: [
+    //                 '--disable-composited-antialiasing',
+    //                 '--allow-insecure-localhost',
+    //             ],
+    //         },
+    //
+    //         os: 'OS X',
+    //         os_version: 'High Sierra',
+    //         browser: 'Chrome',
+    //         browser_version: '74.0 beta',
+    //         resolution: '1600x1200',
+    //     },
+    // ],
+    //
+    // IECapabilties: [
+    //     {
+    //         os: 'Windows',
+    //         os_version: '10',
+    //         browser: 'IE',
+    //         browser_version: '11.0',
+    //         'browserstack.selenium_version': '3.5.2',
+    //         resolution: '1600x1200',
+    //         'browserstack.local': true,
+    //     },
+    // ],
 
     // Framework you want to run your specs with.
     // The following are supported: Mocha, Jasmine, and Cucumber
@@ -218,7 +225,7 @@ exports.config = {
     // See the full list at http://mochajs.org/
     mochaOpts: {
         ui: 'bdd',
-        timeout: 60000,
+        timeout: debug ? 20000000 : defaultTimeoutInterval, // make big when using browser.debug()
     },
     //
     // =====
