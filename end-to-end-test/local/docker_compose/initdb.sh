@@ -23,6 +23,7 @@ fi
 
 sudo rm -rf $CBIO_DB_DATA_DIR/*
 mkdir -p $CBIO_DB_DATA_DIR
+docker volume rm cbioportal-docker-compose_cbioportal_mysql_data
 docker-compose $compose_extensions up -d cbioportal
 echo
 
