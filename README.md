@@ -199,7 +199,7 @@ In a terminal, start the frontend dev server
 ```
 export BRANCH_ENV=custom
 yarn install --frozen-lockfile // only necessary first time
-yarn buildDLL:dev // only necessary first tiem
+yarn buildDLL:dev // only necessary first time
 yarn start
 ```
 
@@ -208,7 +208,7 @@ yarn start
 cd end-to-end-test
 yarn
 ```
-5. In a second terminal at project root, spinup the backend (api) instance:
+4. In a second terminal at project root, spinup the backend (api) instance:
 
 ```
 // if you are running for first time, you will need to build the docker containers.
@@ -219,7 +219,12 @@ yarn
 yarn run e2e:spinup
 ```
 
-6. When backend instance is operational, you can run tests. Upon executing
+After the script has completed, you can verify that the instance is operational by
+visiting [http://localhost:8080](http://localhost:8080) in your browser. Once you
+log into keycloak (`testuser`/`P@ssword1`), you should see the cBioPortal home page
+with several studies loaded.
+
+5. When backend instance is operational, you can run tests. Upon executing
 the command below, a browser should open and you should see your tests execute.
 
 ```
@@ -231,6 +236,10 @@ yarn run e2e:local --grep=some.spec*
 
 ```
 
+When you want to shut down your local cBioPortal instance, you can do so by running:
+```
+yarn run e2e:spindown
+```
 
 
 ### Running e2e-localdb tests _CircleCI_ or _CircleCI+PR_ context
