@@ -225,6 +225,32 @@ type ResourceId = string;
 type ComparisonGroupId = string;
 type AttributeId = string;
 
+function batchCalls<T>(
+    client: any,
+    methodName: any,
+    data: any,
+    arrayPath: string
+): Promise<T[]> {
+    const items = _.at(data, [arrayPath])[0];
+
+    const size = items.length / 4;
+
+    const batches = Math.ceil(items.length / size);
+
+    const groups: any[] = [];
+
+    for (let i = 0; i < batches; i++) {
+        groups.push(items.slice(i * size, (i + 1) * size));
+    }
+
+    const proms = groups.map(batch => {
+        const param = _.update(data, arrayPath, o => batch);
+        return client[methodName](param);
+    });
+
+    return Promise.all(proms);
+}
+
 export type ChartUserSetting = {
     id: string;
     name?: string;
@@ -4339,48 +4365,71 @@ export class StudyViewPageStore {
                 return [];
             }
 
-            //TODO: remove filtering logic fusion profiles data is fixed
-            //filter out structural variant/fusion profiles
-            const filteredMolecularProfiles: MolecularProfile[] = this.molecularProfiles.result.filter(
-                molecularProfile =>
-                    ![
-                        AlterationTypeConstants.STRUCTURAL_VARIANT,
-                        AlterationTypeConstants.FUSION,
-                    ].includes(molecularProfile.molecularAlterationType)
+            // //TODO: remove filtering logic fusion profiles data is fixed
+            // //filter out structural variant/fusion profiles
+            // const filteredMolecularProfiles: MolecularProfile[] = this.molecularProfiles.result.filter(
+            //     molecularProfile =>
+            //         ![
+            //             AlterationTypeConstants.STRUCTURAL_VARIANT,
+            //             AlterationTypeConstants.FUSION,
+            //         ].includes(molecularProfile.molecularAlterationType)
+            // );
+            //
+            // //Add appropriate structural variant/fusion profiles
+            // this.structuralVariantProfiles.result.forEach(
+            //     structuralVariantProfile => {
+            //         filteredMolecularProfiles.push(structuralVariantProfile);
+            //     }
+            // );
+            // //TODO: remove this block once fusion profiles data is fixed
+            // const studyMolecularProfilesSet = _.groupBy(
+            //     filteredMolecularProfiles,
+            //     molecularProfile => molecularProfile.studyId
+            // );
+
+            // const sampleMolecularIdentifiers = _.flatMap(
+            //     this.samples.result,
+            //     sample => {
+            //         return studyMolecularProfilesSet[sample.studyId].map(
+            //             molecularProfile => {
+            //                 return {
+            //                     molecularProfileId:
+            //                         molecularProfile.molecularProfileId,
+            //                     sampleId: sample.sampleId,
+            //                 };
+            //             }
+            //         );
+            //     }
+            // );
+
+            // const now1 = performance.now();
+            // const genePanelData = await defaultClient.fetchGenePanelDataInMultipleMolecularProfilesUsingPOST(
+            //     {
+            //         sampleMolecularIdentifiers: sampleMolecularIdentifiers,
+            //     }
+            // );
+            //
+            // console.log('gene-panel time1', performance.now() - now1);
+            //
+            // const now2 = performance.now();
+            //
+            // const genePanelData2 = await batchCalls(
+            //     defaultClient,
+            //     'fetchGenePanelDataInMultipleMolecularProfilesUsingPOST',
+            //     {
+            //         sampleMolecularIdentifiers: sampleMolecularIdentifiers,
+            //     },
+            //     'sampleMolecularIdentifiers'
+            // );
+            //
+            // console.log('gene-panel time2', performance.now() - now2);
+
+            //@ts-ignore
+            const genePanelData = await $.get(
+                '//localhost:3000/reactapp/gene-panel.json'
             );
 
-            //Add appropriate structural variant/fusion profiles
-            this.structuralVariantProfiles.result.forEach(
-                structuralVariantProfile => {
-                    filteredMolecularProfiles.push(structuralVariantProfile);
-                }
-            );
-            //TODO: remove this block once fusion profiles data is fixed
-            const studyMolecularProfilesSet = _.groupBy(
-                filteredMolecularProfiles,
-                molecularProfile => molecularProfile.studyId
-            );
-
-            const sampleMolecularIdentifiers = _.flatMap(
-                this.samples.result,
-                sample => {
-                    return studyMolecularProfilesSet[sample.studyId].map(
-                        molecularProfile => {
-                            return {
-                                molecularProfileId:
-                                    molecularProfile.molecularProfileId,
-                                sampleId: sample.sampleId,
-                            };
-                        }
-                    );
-                }
-            );
-
-            const genePanelData = await defaultClient.fetchGenePanelDataInMultipleMolecularProfilesUsingPOST(
-                {
-                    sampleMolecularIdentifiers: sampleMolecularIdentifiers,
-                }
-            );
+            //@ts-ignore
             return genePanelData.filter(datum => datum.profiled);
         },
         default: [],
