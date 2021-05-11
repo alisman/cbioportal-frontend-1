@@ -1,4 +1,5 @@
 const clipboardy = require('clipboardy');
+const { performance } = require('perf_hooks');
 
 function waitForStudyQueryPage(timeout) {
     $('div[data-test="cancerTypeListContainer"]').waitForExist(
@@ -188,13 +189,18 @@ const useExternalFrontend = !process.env
 const useLocalDist = process.env.FRONTEND_TEST_USE_LOCAL_DIST;
 
 function waitForNetworkQuiet(timeout) {
-    browser.waitUntil(() => {
-        return (
-            browser.execute(function() {
-                return window.ajaxQuiet === true;
-            }).value == true
-        );
-    }, timeout);
+    browser.waitUntil(
+        () => {
+            return (
+                browser.execute(function() {
+                    return window.ajaxQuiet === true;
+                }) == true
+            );
+        },
+        {
+            timeout,
+        }
+    );
 }
 
 function getPortalUrlFromEnv() {
@@ -493,6 +499,37 @@ function selectElementByText(text) {
     return $(`//*[text()="${text}"]`);
 }
 
+function postEndpointMaxResponseTime(url, requestBody, runTimes) {
+    let maxResponseTime = 0;
+    while (runTimes--) {
+        const startTime = performance.now();
+        const result = browser.executeAsync(
+            function(url, requestBody, done) {
+                // browser context - you may not access client or console
+                return fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        accept: 'application/json',
+                        'content-type': 'application/json',
+                    },
+                    referrerPolicy: 'origin-when-cross-origin',
+                    body: JSON.stringify(requestBody),
+                })
+                    .then(response => response.json())
+                    .then(data => done(data));
+            },
+            url,
+            requestBody
+        );
+        maxResponseTime = Math.max(
+            performance.now() - startTime,
+            maxResponseTime
+        );
+    }
+    return maxResponseTime;
+}
+
 module.exports = {
     checkElementWithElementHidden: checkElementWithElementHidden,
     waitForPlotsTab: waitForPlotsTab,
@@ -539,4 +576,5 @@ module.exports = {
     getPortalUrlFromEnv: getPortalUrlFromEnv,
     openGroupComparison: openGroupComparison,
     selectElementByText: selectElementByText,
+    postEndpointMaxResponseTime: postEndpointMaxResponseTime,
 };
