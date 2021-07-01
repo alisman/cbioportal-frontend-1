@@ -302,6 +302,7 @@
     "svg2pdf.js": "github:cbioportal/svg2pdf.js#v1.3.3-cbio",
     "svgsaver": "0.9.0",
     "swagger-client": "^3.8.22",
+    "tippy": "^0.0.0",
     "ts-loader": "4.0.0",
     "tslib": "^1.11.1",
     "typed-css-modules": "^0.6.4",
