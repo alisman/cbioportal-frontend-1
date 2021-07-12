@@ -48,8 +48,9 @@ export default class CategoricalFilterMenu extends React.Component<
     @computed get filterTypeDropdown() {
         return (
             <select
-                className="btn btn-default btn-sm"
+                className="form-control input-sm"
                 onChange={(e: any) => this.onChangeFilterType(e)}
+                style={{ marginRight: 5 }}
             >
                 <option value="contains">Contains</option>
                 <option value="doesNotContain">Does Not Contain</option>
@@ -131,18 +132,17 @@ export default class CategoricalFilterMenu extends React.Component<
 
     render() {
         return (
-            <div
-                style={{
-                    margin: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}
-            >
-                <div style={{ display: 'flex' }}>
+            <div>
+                <div
+                    style={{
+                        display: 'flex',
+                        minWidth: 350,
+                    }}
+                >
                     {this.filterTypeDropdown}
                     <input
                         onChange={this.onChangeFilterString()}
-                        style={{ width: '160px' }}
+                        className={'form-control input-sm'}
                     />
                 </div>
 
