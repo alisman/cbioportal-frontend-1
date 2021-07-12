@@ -5,6 +5,8 @@ import {
     getColorForProteinImpactType as getDefaultColorForProteinImpactType,
     IProteinImpactTypeColors,
     ProteinImpactTypeFilter,
+    NumericalFilter,
+    CategoricalFilter,
 } from 'react-mutation-mapper';
 import {
     Gene,
@@ -225,6 +227,10 @@ export const ANNOTATED_PROTEIN_IMPACT_TYPE_FILTER_ID =
     '_cBioPortalAnnotatedProteinImpactTypeFilter_';
 export const ANNOTATED_PROTEIN_IMPACT_FILTER_TYPE =
     'annotatedProteinImpactType';
+
+export function columnIdToFilterId(columnId: string) {
+    return '_cBioPortal' + columnId.replace(' ', '') + 'ColumnFilter_';
+}
 
 export function isFusion(mutation: Mutation) {
     return getSimplifiedMutationType(mutation.mutationType) === 'fusion';
@@ -564,4 +570,67 @@ export function createAnnotatedProteinImpactTypeFilter(
         );
     };
     return filter;
+}
+
+export function createNumericalFilter(getData: (d: Mutation) => number | null) {
+    const filter = (filter: NumericalFilter, mutation: Mutation) => {
+        const value = getData(mutation);
+        const lowerBound = filter.values[0];
+        const upperBound = filter.values[1];
+        return value !== null && value >= lowerBound && value <= upperBound;
+    };
+    return filter;
+}
+
+export function createCategoricalFilter(getData: (d: Mutation) => string) {
+    const filter = (filter: CategoricalFilter, mutation: Mutation) => {
+        const value = getData(mutation);
+        if (filter.values.length < 2 || value === '') {
+            return false;
+        }
+
+        const filterType = filter.values[0] as string;
+        const filterString = filter.values[1] as string;
+        const selections = filter.values[2] as Set<string>;
+        let match =
+            filterString === '' ||
+            matchCategoricalFilterSearch(
+                value.toUpperCase(),
+                filterType,
+                filterString.toUpperCase()
+            );
+        match = match && selections.has(value);
+        return match;
+    };
+    return filter;
+}
+
+export function matchCategoricalFilterSearch(
+    value: string,
+    filterType: string,
+    filterString: string
+) {
+    switch (filterType) {
+        case 'contains':
+            return value.includes(filterString);
+        case 'doesNotContain':
+            return !value.includes(filterString);
+        case 'equals':
+            return value === filterString;
+        case 'doesNotEqual':
+            return value !== filterString;
+        case 'beginsWith':
+            return value.startsWith(filterString);
+        case 'doesNotBeginWith':
+            return !value.startsWith(filterString);
+        case 'endsWith':
+            return value.endsWith(filterString);
+        case 'doesNotEndWith':
+            return !value.endsWith(filterString);
+        case 'regex':
+            const regex = new RegExp(filterString);
+            return regex.test(value);
+        default:
+            return false;
+    }
 }

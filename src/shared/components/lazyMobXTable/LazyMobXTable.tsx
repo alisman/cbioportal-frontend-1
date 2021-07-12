@@ -106,6 +106,10 @@ type LazyMobXTableProps<T> = {
     onRowMouseEnter?: (d: T) => void;
     onRowMouseLeave?: (d: T) => void;
     filterPlaceholder?: string;
+    columnToHeaderFilterIconModal?: (
+        column: Column<T>
+    ) => JSX.Element | undefined;
+    deactivateColumnFilter?: (columnId: string) => void;
 };
 
 function compareValues<U extends number | string>(
@@ -269,6 +273,10 @@ export class LazyMobXTableStore<T> {
     @observable private onRowMouseEnter: ((d: T) => void) | undefined;
     @observable private onRowMouseLeave: ((d: T) => void) | undefined;
 
+    // this observable is intended to always refer to props.columnToHeaderFilterIconModal
+    @observable private _columnToHeaderFilterIconModal:
+        | ((column: Column<T>) => JSX.Element | undefined)
+        | undefined;
     // this observable is intended to always refer to props.columnVisibility
     @observable private _columnVisibility:
         | { [columnId: string]: boolean }
@@ -427,9 +435,7 @@ export class LazyMobXTableStore<T> {
         return this.visibleColumns.map((column: Column<T>, index: number) => {
             const headerProps: {
                 role?: 'button';
-                className?:
-                    | 'multilineHeader sort-asc'
-                    | 'multilineHeader sort-des';
+                className?: 'sort-asc' | 'sort-des';
                 onClick?: (e: React.MouseEvent) => void;
             } = {};
             if (column.sortBy) {
@@ -448,8 +454,8 @@ export class LazyMobXTableStore<T> {
             }
             if (this.sortColumn === column.name) {
                 headerProps.className = this.sortAscending
-                    ? 'multilineHeader sort-asc'
-                    : 'multilineHeader sort-des';
+                    ? 'sort-asc'
+                    : 'sort-des';
             }
 
             let label;
@@ -469,6 +475,34 @@ export class LazyMobXTableStore<T> {
             } else {
                 thContents = label;
             }
+
+            thContents = <span {...headerProps}>{thContents}</span>;
+
+            if (
+                this._columnToHeaderFilterIconModal &&
+                this._columnToHeaderFilterIconModal(column)
+            ) {
+                const alignToJustify = {
+                    left: 'flex-start',
+                    center: 'center',
+                    right: 'flex-end',
+                };
+                thContents = (
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: column.align
+                                ? alignToJustify[column.align]
+                                : 'flex-start',
+                        }}
+                    >
+                        {this._columnToHeaderFilterIconModal(column)}
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        {thContents}
+                    </div>
+                );
+            }
+
             let style: any = {};
             if (column.align) {
                 style.textAlign = column.align;
@@ -479,11 +513,7 @@ export class LazyMobXTableStore<T> {
 
             return (
                 <React.Fragment key={index}>
-                    <th
-                        className="multilineHeader"
-                        {...headerProps}
-                        style={style}
-                    >
+                    <th className="multilineHeader" style={style}>
                         {thContents}
                     </th>
                     {column.resizable && (
@@ -736,6 +766,8 @@ export class LazyMobXTableStore<T> {
         makeObservable(this);
         this.sortColumn = lazyMobXTableProps.initialSortColumn || '';
         this.sortAscending = lazyMobXTableProps.initialSortDirection !== 'desc'; // default ascending
+        this._columnToHeaderFilterIconModal =
+            lazyMobXTableProps.columnToHeaderFilterIconModal;
         this.setProps(lazyMobXTableProps);
         reaction(
             () => this.displayData.length,
@@ -837,6 +869,11 @@ export default class LazyMobXTable<T> extends React.Component<
                 this.store.setFilterString('');
             },
             visibilityToggle: (columnId: string): void => {
+                // deactivate column filter (if it exists)
+                if (this.props.deactivateColumnFilter) {
+                    this.props.deactivateColumnFilter(columnId);
+                }
+
                 // toggle visibility
                 this.updateColumnVisibility(
                     columnId,

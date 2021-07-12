@@ -206,7 +206,7 @@ export function groupDataByProteinImpactType(sortedFilteredData: any[]) {
 }
 
 export function onFilterOptionSelect(
-    selectedValues: string[],
+    selectedValues: any[],
     allValuesSelected: boolean,
     dataStore: DataStore,
     dataFilterType: string,
